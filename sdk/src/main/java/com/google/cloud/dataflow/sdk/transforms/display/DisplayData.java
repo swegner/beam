@@ -176,28 +176,46 @@ public class DisplayData {
       this.label = label;
     }
 
-    String getNamespace() {
+    public String getNamespace() {
       return ns;
     }
 
-    Type getType() {
+    public String getKey() {
+      return key;
+    }
+    /**
+     * Retrieve the {@link Type} of display metadata. All metadata conforms to a predefined set of
+     * allowed types.
+     */
+    public Type getType() {
       return type;
     }
 
-    T getValue() {
+    /**
+     * Retrieve the value of the metadata item.
+     */
+    public T getValue() {
       return value;
     }
 
-    String getLabel() {
+    /**
+     * Retrieve the optional label for an item. The label is a human-readable description of what
+     * the metadata represents. UIs may choose to display the label instead of the item key.
+     *
+     * </p>If no label was specified, this will return {@code null}.
+     */
+    public String getLabel() {
       return label;
     }
 
-    String getUrl() {
+    /**
+     * Retrieve the optional link URL for an item. The URL points to an address where the reader
+     * can find additional context for the display metadata.
+     *
+     * </p>If no URL was specified, this will return {@code null}.
+     */
+    public String getUrl() {
       return url;
-    }
-
-    String getKey() {
-      return key;
     }
 
     /**
