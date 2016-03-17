@@ -367,10 +367,10 @@ public abstract class DoFn<InputT, OutputT> implements Serializable, HasDisplayD
    */
   public void finishBundle(Context c) throws Exception {
   }
-  
+
   /**
    * {@inheritDoc}
-   * 
+   *
    * <p>By default, does not register any display data. Implementers should override this method
    * to provide their own display metadata.
    */

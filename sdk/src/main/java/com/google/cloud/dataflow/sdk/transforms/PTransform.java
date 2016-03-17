@@ -311,10 +311,10 @@ public abstract class PTransform<InputT extends PInput, OutputT extends POutput>
     Coder<T> defaultOutputCoder = (Coder<T>) getDefaultOutputCoder(input);
     return defaultOutputCoder;
   }
-  
+
   /**
    * {@inheritDoc}
-   * 
+   *
    * <p>By default, does not register any display data. Implementers should override this method
    * to provide their own display metadata.
    */

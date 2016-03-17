@@ -787,12 +787,12 @@ public class ParDo {
         return String.format("ParDo(%s)", StringUtils.approximateSimpleName(clazz));
       }
     }
-    
+
     /**
      * {@inheritDoc}
-     * 
+     *
      * <p>{@link ParDo} registers its internal {@link DoFn} as a subcomponent for display metadata.
-     * {@link DoFn} implementations can register display data by overriding 
+     * {@link DoFn} implementations can register display data by overriding
      * {@link DoFn#populateDisplayData}.
      */
     @Override

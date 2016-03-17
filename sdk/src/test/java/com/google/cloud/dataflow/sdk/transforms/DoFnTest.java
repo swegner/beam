@@ -193,7 +193,7 @@ public class DoFnTest implements Serializable {
 
     return pipeline;
   }
-  
+
   @Test
   public void testPopulateDisplayDataDefaultBehavior() {
     DoFn<String, String> usesDefault =

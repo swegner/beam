@@ -1520,7 +1520,7 @@ public class ParDoTest implements Serializable {
     thrown.expectMessage("must not be mutated");
     pipeline.run();
   }
-  
+
   @Test
   public void testIncludesDoFnDisplayData() {
     Bound<String, String> parDo =
