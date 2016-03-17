@@ -17,14 +17,19 @@
 package com.google.cloud.dataflow.sdk.transforms;
 
 import static org.hamcrest.CoreMatchers.isA;
+import static org.hamcrest.Matchers.empty;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertThat;
 
 import com.google.cloud.dataflow.sdk.Pipeline.PipelineExecutionException;
 import com.google.cloud.dataflow.sdk.testing.RunnableOnService;
 import com.google.cloud.dataflow.sdk.testing.TestPipeline;
 import com.google.cloud.dataflow.sdk.transforms.Combine.CombineFn;
 import com.google.cloud.dataflow.sdk.transforms.Max.MaxIntegerFn;
+import com.google.cloud.dataflow.sdk.transforms.display.DisplayData;
+import com.google.cloud.dataflow.sdk.transforms.display.DisplayData.Builder;
+import com.google.cloud.dataflow.sdk.values.PCollection;
 
 import org.junit.Rule;
 import org.junit.Test;
@@ -187,5 +192,31 @@ public class DoFnTest implements Serializable {
      .apply(ParDo.of(fn));
 
     return pipeline;
+  }
+  
+  @Test
+  public void testPopulateDisplayDataDefaultBehavior() {
+    DoFn<String, String> usesDefault =
+        new DoFn<String, String>() {
+          @Override
+          public void processElement(DoFn<String, String>.ProcessContext c) throws Exception {}
+        };
+
+    DisplayData data = collectDisplayData(usesDefault);
+    assertThat(data.items(), empty());
+  }
+
+  private DisplayData collectDisplayData(final DoFn<String, String> fn) {
+    // Host within a PTransform which does not write any of its own metadata
+    // to isolate the DoFn behavior.
+    PTransform<?, ?> transform =
+        new PTransform<PCollection<String>, PCollection<String>>() {
+          @Override
+          public void populateDisplayData(Builder builder) {
+            builder.include(fn);
+          }
+        };
+
+    return DisplayData.from(transform);
   }
 }

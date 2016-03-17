@@ -1,0 +1,376 @@
+/*
+ * Copyright (C) 2016 Google Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may not
+ * use this file except in compliance with the License. You may obtain a copy of
+ * the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+ * License for the specific language governing permissions and limitations under
+ * the License.
+ */
+
+package com.google.cloud.dataflow.sdk.transforms.display;
+
+import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkNotNull;
+
+import com.google.auto.value.AutoValue;
+import com.google.cloud.dataflow.sdk.transforms.DoFn;
+import com.google.cloud.dataflow.sdk.transforms.PTransform;
+import com.google.cloud.dataflow.sdk.transforms.ParDo;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
+
+import org.joda.time.Duration;
+import org.joda.time.Instant;
+
+import java.util.Collection;
+import java.util.Map;
+import java.util.Set;
+
+/**
+ * Static display metadata associated with a {@link PTransform}. Display data is useful for
+ * pipeline runner UIs and diagnostic dashboards to display details about {@link PTransform}s
+ * that make up a pipeline.
+ *
+ * <p>{@link PTransform}s specify their display data by implementing the {@link HasDisplayData}
+ * interface.
+ */
+public class DisplayData {
+  private static final DisplayData EMPTY = new DisplayData(Maps.<Identifier, Item<?>>newHashMap());
+  private final ImmutableMap<Identifier, Item<?>> entries;
+
+  private DisplayData(Map<Identifier, Item<?>> entries) {
+    this.entries = ImmutableMap.copyOf(entries);
+  }
+
+  /**
+   * Default empty {@link DisplayData} instance.
+   */
+  public static DisplayData none() {
+    return EMPTY;
+  }
+
+  /**
+   * Collect the {@link DisplayData} for a {@link PTransform}. This will traverse all subcomponents
+   * specified via {@link Builder#include} in the given transform.
+   */
+  public static DisplayData from(PTransform<?, ?> transform) {
+    checkNotNull(transform);
+    return InternalBuilder.forRoot(transform).build();
+  }
+
+  public Collection<Item<?>> items() {
+    return entries.values();
+  }
+
+  public Map<Identifier, Item<?>> asMap() {
+    return entries;
+  }
+
+  /**
+   * Utility to build up display metadata from a @{link PTransform} and its included
+   * subcomponents.
+   */
+  public static interface Builder {
+    /**
+     * Include display metadata from the specified subcomponent. For example, a {@link ParDo}
+     * transform includes display metadata from the encapsulated {@link DoFn}.
+     *
+     * @return A builder instance to continue to build in a fluent-style.
+     */
+    Builder include(HasDisplayData subComponent);
+
+    /**
+     * Register the given display metadata.
+     */
+    ItemBuilder add(String key, String value);
+
+    /**
+     * Register the given display metadata.
+     */
+    ItemBuilder add(String key, long value);
+
+    /**
+     * Register the given display metadata.
+     */
+    ItemBuilder add(String key, double value);
+
+    /**
+     * Register the given display metadata.
+     */
+    ItemBuilder add(String key, Instant value);
+
+    /**
+     * Register the given display metadata.
+     */
+    ItemBuilder add(String key, Duration value);
+
+    /**
+     * Register the given display metadata.
+     */
+    ItemBuilder add(String key, Class<?> value);
+  }
+
+  /**
+   * Utility to append optional fields to display metadata, or register additional display metadata
+   * items.
+   */
+  public static interface ItemBuilder extends Builder {
+    /**
+     * Add a human-readable label to describe the metadata field. A label is optional; if
+     * unspecified, UIs should display the metadata key to identify the display item.
+     */
+    ItemBuilder withLabel(String label);
+
+    /**
+     * Add a link URL to the registered display metadata. A link URL is optional and
+     * can be provided to point the reader to additional details about the metadata.
+     */
+    ItemBuilder withLinkUrl(String url);
+  }
+
+  /**
+   * A display metadata item. DisplayData items are registered via {@link Builder#add} within
+   * {@link HasDisplayData#populateDisplayData} implementations. Each metadata item is uniquely
+   * identified by the specified key and namespace generated from the registering component's
+   * class name.
+   */
+  public static class Item<T> {
+    private final String key;
+    private final String ns;
+    private final Type type;
+    private final T value;
+    private final String label;
+    private final String url;
+
+    private static <T> Item<T> create(String namespace, String key, Type type, T value) {
+      return new Item<>(namespace, key, type, value, null, null);
+    }
+
+    private Item(String namespace, String key, Type type, T value, String url, String label) {
+      this.ns = namespace;
+      this.key = key;
+      this.type = type;
+      this.value = value;
+      this.url = url;
+      this.label = label;
+    }
+
+    String getNamespace() {
+      return ns;
+    }
+
+    Type getType() {
+      return type;
+    }
+
+    T getValue() {
+      return value;
+    }
+
+    String getLabel() {
+      return label;
+    }
+
+    String getUrl() {
+      return url;
+    }
+
+    String getKey() {
+      return key;
+    }
+
+    /**
+     * Retrieve a serialized version of the display item value suitable for use as JSON.
+     */
+    String getValueString() {
+      return type.serializeJsonString(value);
+    }
+
+    private Item<T> addLabel(String label) {
+      return new Item<>(this.ns, this.key, this.type, this.value, this.url, label);
+    }
+
+    private Item<T> addUrl(String url) {
+      return new Item<>(this.ns, this.key, this.type, this.value, url, this.label);
+    }
+  }
+
+  /**
+   * Unique identifier for a display metadata item within a {@link PTransform} instance.
+   * Identifiers are composed of the key the are registered with and a namespace generated from
+   * the class of the component which registered the item.
+   *
+   * <p>Display metadata registered with the same key from different components will have different
+   * namespaces and will thus both be represented in the composed {@link DisplayData}. If a
+   * single component registers multiple metadata items with the same key, only the most recent
+   * item will be retained; previous versions are discarded.
+   */
+  @AutoValue
+  abstract static class Identifier {
+    static Identifier of(String namespace, String key) {
+      return new AutoValue_DisplayData_Identifier(namespace, key);
+    }
+
+    abstract String getNamespace();
+
+    abstract String getKey();
+  }
+
+  /**
+   * Display metadata type.
+   */
+  static enum Type {
+    STRING {
+      @Override
+      String serializeJsonString(Object value) {
+        return (String) value;
+      }
+    },
+    INTEGER {
+      @Override
+      String serializeJsonString(Object value) {
+        return Long.toString((long) value);
+      }
+    },
+    FLOAT {
+      @Override
+      String serializeJsonString(Object value) {
+        return Double.toString((Double) value);
+      }
+    },
+    TIMESTAMP() {
+      @Override
+      String serializeJsonString(Object value) {
+        return Long.toString(((Instant) value).getMillis());
+      }
+    },
+    DURATION {
+      @Override
+      String serializeJsonString(Object value) {
+        return Long.toString(((Duration) value).getMillis());
+      }
+    },
+    JAVA_CLASS {
+      @Override
+      String serializeJsonString(Object value) {
+        return ((Class<?>) value).getName();
+      }
+    };
+
+    /**
+     * Serialize the display metadata value into a String which can be submitted as JSON
+     * to a UI or diagnostic dashboard.
+     *
+     * <p>Internal-only. Value objects can be safely cast to the expected Java type.
+     */
+    abstract String serializeJsonString(Object value);
+  }
+
+  private static class InternalBuilder implements ItemBuilder {
+    private final Map<Identifier, Item<?>> entries;
+    private final Set<Object> visited;
+
+    private String currentNs;
+    private Item<?> currentItem;
+    private Identifier currentKey;
+
+    private InternalBuilder() {
+      this.entries = Maps.<Identifier, Item<?>>newHashMap();
+      this.visited = Sets.newHashSet();
+    }
+
+    private static InternalBuilder forRoot(HasDisplayData instance) {
+      InternalBuilder builder = new InternalBuilder();
+      builder.include(instance);
+      return builder;
+    }
+
+    @Override
+    public Builder include(HasDisplayData subComponent) {
+      checkNotNull(subComponent);
+      boolean newComponent = visited.add(subComponent);
+      if (newComponent) {
+        String prevNs = this.currentNs;
+        this.currentNs = subComponent.getClass().getName();
+        subComponent.populateDisplayData(this);
+        this.currentNs = prevNs;
+      }
+
+      return this;
+    }
+
+    @Override
+    public ItemBuilder add(String key, String value) {
+      return addItem(key, Type.STRING, value);
+    }
+
+    @Override
+    public ItemBuilder add(String key, long value) {
+      return addItem(key, Type.INTEGER, value);
+    }
+
+    @Override
+    public ItemBuilder add(String key, double value) {
+      return addItem(key, Type.FLOAT, value);
+    }
+
+    @Override
+    public ItemBuilder add(String key, Instant value) {
+      return addItem(key, Type.TIMESTAMP, value);
+    }
+
+    @Override
+    public ItemBuilder add(String key, Duration value) {
+      return addItem(key, Type.DURATION, value);
+    }
+
+    @Override
+    public ItemBuilder add(String key, Class<?> value) {
+      return addItem(key, Type.JAVA_CLASS, value);
+    }
+
+    private <T> ItemBuilder addItem(String key, Type type, T value) {
+      checkNotNull(key);
+      checkArgument(!key.isEmpty());
+
+      Item<T> item = Item.create(currentNs, key, type, value);
+      Identifier namespacedKey = Identifier.of(currentNs, key);
+      entries.put(namespacedKey, item);
+
+      currentItem = item;
+      currentKey = namespacedKey;
+
+      return this;
+    }
+
+    @Override
+    public ItemBuilder withLabel(String label) {
+      Item<?> newItem = currentItem.addLabel(label);
+      entries.put(currentKey, newItem);
+
+      currentItem = newItem;
+      return this;
+    }
+
+    @Override
+    public ItemBuilder withLinkUrl(String url) {
+      Item<?> newItem = currentItem.addUrl(url);
+      entries.put(currentKey, newItem);
+
+      currentItem = newItem;
+      return this;
+    }
+
+    private DisplayData build() {
+      return new DisplayData(this.entries);
+    }
+  }
+}
