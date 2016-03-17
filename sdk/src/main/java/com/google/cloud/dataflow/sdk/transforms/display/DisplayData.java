@@ -36,10 +36,10 @@ import java.util.Set;
 
 /**
  * Static display metadata associated with a {@link PTransform}. Display data is useful for
- * pipeline runner UIs and diagnostic dashboards to display details about {@link PTransform}s
+ * pipeline runner UIs and diagnostic dashboards to display details about {@link PTransform PTransforms}
  * that make up a pipeline.
  *
- * <p>{@link PTransform}s specify their display data by implementing the {@link HasDisplayData}
+ * <p>{@link PTransform PTransforms} specify their display data by implementing the {@link HasDisplayData}
  * interface.
  */
 public class DisplayData {
