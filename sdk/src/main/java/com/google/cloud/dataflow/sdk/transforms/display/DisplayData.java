@@ -88,32 +88,44 @@ public class DisplayData {
     Builder include(HasDisplayData subComponent);
 
     /**
-     * Register the given display metadata.
+     * Register the given string display metadata. The metadata item will be registered with type
+     * {@link Type#STRING}, and is identified by the specified key and namespace from the current
+     * transform or component.
      */
     ItemBuilder add(String key, String value);
 
     /**
-     * Register the given display metadata.
+     * Register the given numeric display metadata. The metadata item will be registered with type
+     * {@link Type#INTEGER}, and is identified by the specified key and namespace from the current
+     * transform or component.
      */
     ItemBuilder add(String key, long value);
 
     /**
-     * Register the given display metadata.
+     * Register the given floating point display metadata. The metadata item will be registered with
+     * type {@link Type#FLOAT}, and is identified by the specified key and namespace from the
+     * current transform or component.
      */
     ItemBuilder add(String key, double value);
 
     /**
-     * Register the given display metadata.
+     * Register the given timestamp display metadata. The metadata item will be registered with type
+     * {@link Type#TIMESTAMP}, and is identified by the specified key and namespace from the current
+     * transform or component.
      */
     ItemBuilder add(String key, Instant value);
 
     /**
-     * Register the given display metadata.
+     * Register the given duration display metadata. The metadata item will be registered with type
+     * {@link Type#DURATION}, and is identified by the specified key and namespace from the current
+     * transform or component.
      */
     ItemBuilder add(String key, Duration value);
 
     /**
-     * Register the given display metadata.
+     * Register the given class display metadata. The metadata item will be registered with type
+     * {@link Type#JAVA_CLASS}, and is identified by the specified key and namespace from the
+     * current transform or component.
      */
     ItemBuilder add(String key, Class<?> value);
   }
