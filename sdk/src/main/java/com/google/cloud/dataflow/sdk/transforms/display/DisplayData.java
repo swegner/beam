@@ -136,13 +136,14 @@ public class DisplayData {
    */
   public static interface ItemBuilder extends Builder {
     /**
-     * Add a human-readable label to describe the metadata field. A label is optional; if
-     * unspecified, UIs should display the metadata key to identify the display item.
+     * Add a human-readable label to describe the previously-registered metadata field.
+     * A label is optional; if unspecified, UIs should display the metadata key to identify the
+     * display item.
      */
     ItemBuilder withLabel(String label);
 
     /**
-     * Add a link URL to the registered display metadata. A link URL is optional and
+     * Add a link URL to the previously-registered display metadata. A link URL is optional and
      * can be provided to point the reader to additional details about the metadata.
      */
     ItemBuilder withLinkUrl(String url);
