@@ -371,7 +371,7 @@ public abstract class DoFn<InputT, OutputT> implements Serializable, HasDisplayD
   /**
    * {@inheritDoc}
    *
-   * <p>By default, does not register any display data. Implementers should override this method
+   * <p>By default, does not register any display data. Implementors may override this method
    * to provide their own display metadata.
    */
   @Override
