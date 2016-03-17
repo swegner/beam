@@ -225,11 +225,11 @@ public class DisplayData {
       return type.serializeJsonString(value);
     }
 
-    private Item<T> addLabel(String label) {
+    private Item<T> withLabel(String label) {
       return new Item<>(this.ns, this.key, this.type, this.value, this.url, label);
     }
 
-    private Item<T> addUrl(String url) {
+    private Item<T> withUrl(String url) {
       return new Item<>(this.ns, this.key, this.type, this.value, url, this.label);
     }
   }
@@ -384,7 +384,7 @@ public class DisplayData {
 
     @Override
     public ItemBuilder withLabel(String label) {
-      Item<?> newItem = currentItem.addLabel(label);
+      Item<?> newItem = currentItem.withLabel(label);
       entries.put(currentKey, newItem);
 
       currentItem = newItem;
@@ -393,7 +393,7 @@ public class DisplayData {
 
     @Override
     public ItemBuilder withLinkUrl(String url) {
-      Item<?> newItem = currentItem.addUrl(url);
+      Item<?> newItem = currentItem.withUrl(url);
       entries.put(currentKey, newItem);
 
       currentItem = newItem;
