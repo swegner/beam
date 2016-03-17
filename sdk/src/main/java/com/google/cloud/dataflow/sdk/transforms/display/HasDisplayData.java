@@ -32,7 +32,7 @@ public interface HasDisplayData {
    * directly on the provided builder, as well as via included sub-components.
    *
    * <code>
-   *  @Override
+   *  \@Override
    *  public void populateDisplayData(DisplayData.Builder builder) {
    *    builder
    *      .include(subComponent)

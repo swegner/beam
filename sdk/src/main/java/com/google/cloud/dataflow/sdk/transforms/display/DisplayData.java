@@ -78,7 +78,7 @@ public class DisplayData {
    * Utility to build up display metadata from a @{link PTransform} and its included
    * subcomponents.
    */
-  public static interface Builder {
+  public interface Builder {
     /**
      * Include display metadata from the specified subcomponent. For example, a {@link ParDo}
      * transform includes display metadata from the encapsulated {@link DoFn}.
@@ -134,7 +134,7 @@ public class DisplayData {
    * Utility to append optional fields to display metadata, or register additional display metadata
    * items.
    */
-  public static interface ItemBuilder extends Builder {
+  public interface ItemBuilder extends Builder {
     /**
      * Add a human-readable label to describe the previously-registered metadata field.
      * A label is optional; if unspecified, UIs should display the metadata key to identify the
@@ -258,7 +258,7 @@ public class DisplayData {
   /**
    * Display metadata type.
    */
-  static enum Type {
+  enum Type {
     STRING {
       @Override
       String serializeJsonString(Object value) {
@@ -314,7 +314,7 @@ public class DisplayData {
     private Identifier currentKey;
 
     private InternalBuilder() {
-      this.entries = Maps.<Identifier, Item<?>>newHashMap();
+      this.entries = Maps.newHashMap();
       this.visited = Sets.newHashSet();
     }
 
