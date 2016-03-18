@@ -19,8 +19,9 @@ package com.google.cloud.dataflow.sdk.transforms.display;
 import com.google.cloud.dataflow.sdk.transforms.PTransform;
 
 /**
- * Marker interface for {@link PTransform PTransforms} and components used within {@link PTransform PTransforms} to
- * specify display metadata to be used within UIs and diagnostic tools.
+ * Marker interface for {@link PTransform PTransforms} and components used within
+ * {@link PTransform PTransforms} to specify display metadata to be used within UIs and diagnostic
+ * tools.
  *
  * <p>Display metadata is optional and may be collected during pipeline construction. It should
  * only be used to informational purposes. Tools and components should not assume that display data
