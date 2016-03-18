@@ -81,7 +81,15 @@ public class DisplayDataMatchers {
    * with the specified value.
    */
   public static Matcher<DisplayData.Item<?>> hasKey(String key) {
-    return new FeatureMatcher<DisplayData.Item<?>, String>(Matchers.is(key), "with key", "key") {
+    return hasKey(Matchers.is(key));
+  }
+
+  /**
+   * Creates a matcher that matches if the examined {@link DisplayData.Item} contains a key
+   * matching the specified key matcher.
+   */
+  public static Matcher<DisplayData.Item<?>> hasKey(Matcher<String> keyMatcher) {
+    return new FeatureMatcher<DisplayData.Item<?>, String>(keyMatcher, "with key", "key") {
       @Override
       protected String featureValueOf(DisplayData.Item<?> actual) {
         return actual.getKey();

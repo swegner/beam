@@ -22,7 +22,6 @@ import static org.hamcrest.Matchers.allOf;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.everyItem;
 import static org.hamcrest.Matchers.hasItem;
-import static org.hamcrest.Matchers.hasKey;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.isEmptyOrNullString;
@@ -38,6 +37,8 @@ import com.google.cloud.dataflow.sdk.transforms.display.DisplayData.Item;
 import com.google.cloud.dataflow.sdk.values.PCollection;
 import com.google.common.testing.EqualsTester;
 
+import org.codehaus.jackson.JsonNode;
+import org.codehaus.jackson.map.ObjectMapper;
 import org.hamcrest.FeatureMatcher;
 import org.hamcrest.Matcher;
 import org.hamcrest.Matchers;
@@ -49,6 +50,7 @@ import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
+import java.io.IOException;
 import java.util.Collection;
 import java.util.Map;
 
@@ -103,7 +105,7 @@ public class DisplayDataTest {
         data.items(),
         everyItem(
             allOf(
-                hasItemKey(not(isEmptyOrNullString())),
+                hasKey(not(isEmptyOrNullString())),
                 hasNamespace(
                     Matchers.<Class<?>>isOneOf(
                         transform.getClass(), subComponent1.getClass(), subComponent2.getClass())),
@@ -129,7 +131,7 @@ public class DisplayDataTest {
             });
 
     assertThat(data.items(), hasSize(1));
-    assertThat(data, hasDisplayItem(hasItemKey(is("Foo"))));
+    assertThat(data, hasDisplayItem(hasKey("Foo")));
   }
 
   @Test
@@ -160,7 +162,7 @@ public class DisplayDataTest {
         item,
         allOf(
             hasNamespace(Matchers.<Class<?>>is(ConcreteTransform.class)),
-            hasItemKey(is("now")),
+            hasKey("now"),
             hasType(is(DisplayData.Type.TIMESTAMP)),
             hasValue(is(value)),
             hasValueString(is(Long.toString(value.getMillis()))),
@@ -220,16 +222,18 @@ public class DisplayDataTest {
         data,
         hasDisplayItem(
             allOf(
-                hasItemKey(is("foo")),
+                hasKey("foo"),
                 hasNamespace(Matchers.<Class<?>>is(subComponent.getClass())))));
   }
 
   @Test
   public void testKeyEquality() {
     new EqualsTester()
-        .addEqualityGroup(DisplayData.Identifier.of("a", "1"), DisplayData.Identifier.of("a", "1"))
-        .addEqualityGroup(DisplayData.Identifier.of("b", "1"))
-        .addEqualityGroup(DisplayData.Identifier.of("a", "2"))
+        .addEqualityGroup(
+            DisplayData.Identifier.of(DisplayDataTest.class, "1"),
+            DisplayData.Identifier.of(DisplayDataTest.class, "1"))
+        .addEqualityGroup(DisplayData.Identifier.of(Object.class, "1"))
+        .addEqualityGroup(DisplayData.Identifier.of(DisplayDataTest.class, "2"))
         .testEquals();
   }
 
@@ -273,16 +277,15 @@ public class DisplayDataTest {
   @Test
   public void testDuplicateKeyThrowsException() {
     thrown.expect(IllegalArgumentException.class);
-    DisplayData data =
-        DisplayData.from(
-            new PTransform<PCollection<String>, PCollection<String>>() {
-              @Override
-              public void populateDisplayData(DisplayData.Builder builder) {
-                builder
-                  .add("foo", "bar")
-                  .add("foo", "baz");
-              }
-            });
+    DisplayData.from(
+        new PTransform<PCollection<String>, PCollection<String>>() {
+          @Override
+          public void populateDisplayData(DisplayData.Builder builder) {
+            builder
+              .add("foo", "bar")
+              .add("foo", "baz");
+          }
+        });
   }
 
   @Test
@@ -361,62 +364,67 @@ public class DisplayDataTest {
 
     Collection<Item<?>> items = data.items();
     assertThat(
-        items, hasItem(allOf(hasItemKey(is("string")), hasType(is(DisplayData.Type.STRING)))));
+        items, hasItem(allOf(hasKey("string"), hasType(is(DisplayData.Type.STRING)))));
     assertThat(
-        items, hasItem(allOf(hasItemKey(is("integer")), hasType(is(DisplayData.Type.INTEGER)))));
-    assertThat(items, hasItem(allOf(hasItemKey(is("float")), hasType(is(DisplayData.Type.FLOAT)))));
-    assertThat(
-        items,
-        hasItem(allOf(hasItemKey(is("java_class")), hasType(is(DisplayData.Type.JAVA_CLASS)))));
+        items, hasItem(allOf(hasKey("integer"), hasType(is(DisplayData.Type.INTEGER)))));
+    assertThat(items, hasItem(allOf(hasKey("float"), hasType(is(DisplayData.Type.FLOAT)))));
     assertThat(
         items,
-        hasItem(allOf(hasItemKey(is("timestamp")), hasType(is(DisplayData.Type.TIMESTAMP)))));
+        hasItem(allOf(hasKey("java_class"), hasType(is(DisplayData.Type.JAVA_CLASS)))));
     assertThat(
-        items, hasItem(allOf(hasItemKey(is("duration")), hasType(is(DisplayData.Type.DURATION)))));
+        items,
+        hasItem(allOf(hasKey("timestamp"), hasType(is(DisplayData.Type.TIMESTAMP)))));
+    assertThat(
+        items, hasItem(allOf(hasKey("duration"), hasType(is(DisplayData.Type.DURATION)))));
   }
 
   @Test
-  public void testStringFormatting() {
+  public void testStringFormatting() throws IOException {
     final Instant now = Instant.now();
     final Duration oneHour = Duration.standardHours(1);
 
-    DisplayData data =
-        DisplayData.from(
-            new PTransform<PCollection<String>, PCollection<String>>() {
-              @Override
-              public void populateDisplayData(DisplayData.Builder builder) {
-                builder
-                    .add("string", "foobar")
-                    .add("integer", 123)
-                    .add("float", 3.14)
-                    .add("java_class", DisplayDataTest.class)
-                    .add("timestamp", now)
-                    .add("duration", oneHour);
-              }
-            });
+    PTransform<?,?> transform = new PTransform<PCollection<String>, PCollection<String>>() {
+      @Override
+      public void populateDisplayData(DisplayData.Builder builder) {
+        builder
+          .add("string", "foobar")
+          .add("integer", 123)
+          .add("float", 3.14)
+          .add("java_class", DisplayDataTest.class)
+          .add("timestamp", now)
+          .add("duration", oneHour);
+      }
+    };
+    DisplayData data = DisplayData.from(transform);
 
     Collection<Item<?>> items = data.items();
-    assertThat(items, hasItem(allOf(hasItemKey(is("string")), hasValueString(is("foobar")))));
-    assertThat(items, hasItem(allOf(hasItemKey(is("integer")), hasValueString(is("123")))));
-    assertThat(items, hasItem(allOf(hasItemKey(is("float")), hasValueString(is("3.14")))));
+    assertThat(items, hasItem(allOf(hasKey("string"), hasValueString(is("foobar")))));
+    assertThat(items, hasItem(allOf(hasKey("integer"), hasValueString(is("123")))));
+    assertThat(items, hasItem(allOf(hasKey("float"), hasValueString(is("3.14")))));
+    assertThat(items, hasItem(hasKey("java_class")));
+    Item<?> javaClassItem =
+        data.asMap().get(DisplayData.Identifier.of(transform.getClass(), "java_class"));
+    JsonNode javaClassJson = readJson(javaClassItem.getValueString());
+    assertEquals("DisplayDataTest", javaClassJson.get("simpleName").getTextValue());
+    assertEquals(
+        "com.google.cloud.dataflow.sdk.transforms.display.DisplayDataTest",
+        javaClassJson.get("name").getTextValue());
+
     assertThat(
         items,
         hasItem(
             allOf(
-                hasItemKey(is("java_class")),
-                hasValueString(
-                    is("com.google.cloud.dataflow.sdk.transforms.display.DisplayDataTest")))));
+                hasKey("timestamp"), hasValueString(is(Long.toString(now.getMillis()))))));
     assertThat(
         items,
         hasItem(
             allOf(
-                hasItemKey(is("timestamp")), hasValueString(is(Long.toString(now.getMillis()))))));
-    assertThat(
-        items,
-        hasItem(
-            allOf(
-                hasItemKey(is("duration")),
-                hasValueString(is(Long.toString(oneHour.getMillis()))))));
+                hasKey("duration"), hasValueString(is(Long.toString(oneHour.getMillis()))))));
+  }
+
+  private JsonNode readJson(String json) throws IOException {
+    ObjectMapper mapper = new ObjectMapper();
+    return mapper.readTree(json);
   }
 
   @Test
@@ -442,7 +450,7 @@ public class DisplayDataTest {
         data.items(),
         hasItem(
             allOf(
-                hasItemKey(is("alpha")),
+                hasKey("alpha"),
                 hasNamespace(Matchers.<Class<?>>is(transform.getClass())))));
   }
 
@@ -527,17 +535,7 @@ public class DisplayDataTest {
     // Should not throw
   }
 
-  static Matcher<DisplayData.Item<?>> hasItemKey(Matcher<String> keyMatcher) {
-    return new FeatureMatcher<DisplayData.Item<?>, String>(
-        keyMatcher, "display item with key", "key") {
-      @Override
-      protected String featureValueOf(DisplayData.Item<?> actual) {
-        return actual.getKey();
-      }
-    };
-  }
-
-  static Matcher<DisplayData.Item<?>> hasNamespace(Matcher<Class<?>> nsMatcher) {
+  private static Matcher<DisplayData.Item<?>> hasNamespace(Matcher<Class<?>> nsMatcher) {
     return new FeatureMatcher<DisplayData.Item<?>, Class<?>>(
         nsMatcher, "display item with namespace", "namespace") {
       @Override
@@ -551,7 +549,7 @@ public class DisplayDataTest {
     };
   }
 
-  static Matcher<DisplayData.Item<?>> hasType(Matcher<DisplayData.Type> typeMatcher) {
+  private static Matcher<DisplayData.Item<?>> hasType(Matcher<DisplayData.Type> typeMatcher) {
     return new FeatureMatcher<DisplayData.Item<?>, DisplayData.Type>(
         typeMatcher, "display item with type", "type") {
       @Override
@@ -561,7 +559,7 @@ public class DisplayDataTest {
     };
   }
 
-  static Matcher<DisplayData.Item<?>> hasLabel(Matcher<String> labelMatcher) {
+  private static Matcher<DisplayData.Item<?>> hasLabel(Matcher<String> labelMatcher) {
     return new FeatureMatcher<DisplayData.Item<?>, String>(
         labelMatcher, "display item with label", "label") {
       @Override
@@ -571,7 +569,7 @@ public class DisplayDataTest {
     };
   }
 
-  static Matcher<DisplayData.Item<?>> hasUrl(Matcher<String> urlMatcher) {
+  private static Matcher<DisplayData.Item<?>> hasUrl(Matcher<String> urlMatcher) {
     return new FeatureMatcher<DisplayData.Item<?>, String>(
         urlMatcher, "display item with url", "URL") {
       @Override
@@ -581,7 +579,7 @@ public class DisplayDataTest {
     };
   }
 
-  static <T> Matcher<DisplayData.Item<T>> hasValue(Matcher<T> valueMatcher) {
+  private static <T> Matcher<DisplayData.Item<T>> hasValue(Matcher<T> valueMatcher) {
     return new FeatureMatcher<DisplayData.Item<T>, T>(
         valueMatcher, "display item with value", "value") {
       @Override
@@ -591,7 +589,7 @@ public class DisplayDataTest {
     };
   }
 
-  static Matcher<DisplayData.Item<?>> hasValueString(Matcher<String> valueStringMatcher) {
+  private static Matcher<DisplayData.Item<?>> hasValueString(Matcher<String> valueStringMatcher) {
     return new FeatureMatcher<DisplayData.Item<?>, String>(
         valueStringMatcher, "display item with value string", "value string") {
       @Override

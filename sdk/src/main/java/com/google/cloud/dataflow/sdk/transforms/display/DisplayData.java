@@ -19,18 +19,20 @@ package com.google.cloud.dataflow.sdk.transforms.display;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import autovalue.shaded.com.google.common.common.base.Throwables;
 import com.google.auto.value.AutoValue;
 import com.google.cloud.dataflow.sdk.transforms.DoFn;
 import com.google.cloud.dataflow.sdk.transforms.PTransform;
 import com.google.cloud.dataflow.sdk.transforms.ParDo;
-import com.google.common.base.MoreObjects;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
+import org.codehaus.jackson.map.ObjectMapper;
 import org.joda.time.Duration;
 import org.joda.time.Instant;
 
+import java.io.IOException;
 import java.util.Collection;
 import java.util.Map;
 import java.util.Set;
@@ -269,8 +271,8 @@ public class DisplayData {
    */
   @AutoValue
   abstract static class Identifier {
-    static Identifier of(String namespace, String key) {
-      return new AutoValue_DisplayData_Identifier(namespace, key);
+    static Identifier of(Class<?> namespace, String key) {
+      return new AutoValue_DisplayData_Identifier(namespace.getName(), key);
     }
 
     abstract String getNamespace();
@@ -319,7 +321,11 @@ public class DisplayData {
     JAVA_CLASS {
       @Override
       String serializeJsonString(Object value) {
-        return ((Class<?>) value).getName();
+        Class<?> clazz = (Class<?>) value;
+        Map<String, String> jsonMap = Maps.newHashMap();
+        jsonMap.put("name", clazz.getName());
+        jsonMap.put("simpleName", clazz.getSimpleName());
+        return toJson(jsonMap);
       }
     };
 
@@ -330,15 +336,28 @@ public class DisplayData {
      * <p>Internal-only. Value objects can be safely cast to the expected Java type.
      */
     abstract String serializeJsonString(Object value);
+
+    private static final ObjectMapper JSON_MAPPER = new ObjectMapper();
+
+    /**
+     * Serialize the given object as JSON.
+     */
+    private static String toJson(Object obj) {
+      try {
+        return JSON_MAPPER.writeValueAsString(obj);
+      } catch (IOException ex) {
+        throw Throwables.propagate(ex);
+      }
+    }
   }
 
   private static class InternalBuilder implements ItemBuilder {
     private final Map<Identifier, Item<?>> entries;
     private final Set<Object> visited;
 
-    private String currentNs;
+    private Class<?> currentNs;
     private Item<?> currentItem;
-    private Identifier currentKey;
+    private Identifier currentIdentifier;
 
     private InternalBuilder() {
       this.entries = Maps.newHashMap();
@@ -356,8 +375,8 @@ public class DisplayData {
       checkNotNull(subComponent);
       boolean newComponent = visited.add(subComponent);
       if (newComponent) {
-        String prevNs = this.currentNs;
-        this.currentNs = subComponent.getClass().getName();
+        Class prevNs = this.currentNs;
+        this.currentNs = subComponent.getClass();
         subComponent.populateDisplayData(this);
         this.currentNs = prevNs;
       }
@@ -403,16 +422,16 @@ public class DisplayData {
       checkNotNull(key);
       checkArgument(!key.isEmpty());
 
-      Identifier namespacedKey = Identifier.of(currentNs, key);
-      if (entries.containsKey(namespacedKey)) {
+      Identifier id = Identifier.of(currentNs, key);
+      if (entries.containsKey(id)) {
         throw new IllegalArgumentException("DisplayData key already exists. All display data "
-          + "for a component must be registered with a unique key.\nKey: " + namespacedKey);
+          + "for a component must be registered with a unique key.\nKey: " + id);
       }
-      Item<T> item = Item.create(currentNs, key, type, value);
-      entries.put(namespacedKey, item);
+      Item<T> item = Item.create(id.getNamespace(), key, type, value);
+      entries.put(id, item);
 
       currentItem = item;
-      currentKey = namespacedKey;
+      currentIdentifier = id;
 
       return this;
     }
@@ -420,7 +439,7 @@ public class DisplayData {
     @Override
     public ItemBuilder withLabel(String label) {
       Item<?> newItem = currentItem.withLabel(label);
-      entries.put(currentKey, newItem);
+      entries.put(currentIdentifier, newItem);
 
       currentItem = newItem;
       return this;
@@ -429,7 +448,7 @@ public class DisplayData {
     @Override
     public ItemBuilder withLinkUrl(String url) {
       Item<?> newItem = currentItem.withUrl(url);
-      entries.put(currentKey, newItem);
+      entries.put(currentIdentifier, newItem);
 
       currentItem = newItem;
       return this;
