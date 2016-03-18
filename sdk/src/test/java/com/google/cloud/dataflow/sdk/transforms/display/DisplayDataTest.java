@@ -334,6 +334,44 @@ public class DisplayDataTest {
     assertThat(data.items(), hasSize(2));
   }
 
+  @Test
+  public void testIncludesSubcomponentsWithObjectEquality() {
+    DisplayData data = DisplayData.from(new PTransform<PCollection<String>, PCollection<String>>() {
+      @Override
+      public void populateDisplayData(DisplayData.Builder builder) {
+        builder
+          .include(new EqualsEverything("foo1", "bar1"))
+          .include(new EqualsEverything("foo2", "bar2"));
+      }
+    });
+
+    assertThat(data.items(), hasSize(2));
+  }
+
+  private static class EqualsEverything implements HasDisplayData {
+    private final String value;
+    private final String key;
+    EqualsEverything(String key, String value) {
+      this.key = key;
+      this.value = value;
+    }
+
+    @Override
+    public void populateDisplayData(DisplayData.Builder builder) {
+      builder.add(key, value);
+    }
+
+    @Override
+    public int hashCode() {
+      return 1;
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+      return true;
+    }
+  }
+
   abstract static class IncludeSubComponent implements HasDisplayData {
     HasDisplayData subComponent;
 

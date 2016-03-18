@@ -361,7 +361,7 @@ public class DisplayData {
 
     private InternalBuilder() {
       this.entries = Maps.newHashMap();
-      this.visited = Sets.newHashSet();
+      this.visited = Sets.newIdentityHashSet();
     }
 
     private static InternalBuilder forRoot(HasDisplayData instance) {
