@@ -837,11 +837,5 @@
       <version>0.5.160304</version>
       <scope>test</scope>
     </dependency>
-    <dependency>
-      <groupId>com.google.auto.value</groupId>
-      <artifactId>auto-value</artifactId>
-      <scope>provided</scope>
-      <version>1.1</version>
-    </dependency>
   </dependencies>
 </project>

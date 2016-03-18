@@ -19,11 +19,10 @@ package com.google.cloud.dataflow.sdk.transforms.display;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 
-import autovalue.shaded.com.google.common.common.base.Throwables;
-import com.google.auto.value.AutoValue;
 import com.google.cloud.dataflow.sdk.transforms.DoFn;
 import com.google.cloud.dataflow.sdk.transforms.ParDo;
 import com.google.cloud.dataflow.sdk.transforms.PTransform;
+import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
@@ -35,6 +34,7 @@ import org.joda.time.Instant;
 import java.io.IOException;
 import java.util.Collection;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 
 /**
@@ -269,18 +269,46 @@ public class DisplayData {
    * single component registers multiple metadata items with the same key, only the most recent
    * item will be retained; previous versions are discarded.
    */
-  @AutoValue
-  abstract static class Identifier {
+  public static class Identifier {
+    private final String ns;
+    private final String key;
+
     static Identifier of(Class<?> namespace, String key) {
-      return new AutoValue_DisplayData_Identifier(namespace.getName(), key);
+      return new Identifier(namespace.getName(), key);
     }
 
-    abstract String getNamespace();
-    abstract String getKey();
+    private Identifier(String ns, String key) {
+      this.ns = ns;
+      this.key = key;
+    }
+
+    public String getNamespace() {
+      return ns;
+    }
+
+    public String getKey() {
+      return key;
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+      if (obj instanceof Identifier) {
+        Identifier that = (Identifier) obj;
+        return this.ns.equals(that.ns)
+            && this.key.equals(that.key);
+      }
+
+      return false;
+    }
+
+    @Override
+    public int hashCode() {
+      return Objects.hash(ns, key);
+    }
 
     @Override
     public String toString() {
-      return String.format("%s:%s", getNamespace(), getKey());
+      return String.format("%s:%s", ns, key);
     }
   }
 

@@ -226,7 +226,7 @@ public class DisplayDataTest {
   }
 
   @Test
-  public void testKeyEquality() {
+  public void testIdentifierEquality() {
     new EqualsTester()
         .addEqualityGroup(
             DisplayData.Identifier.of(DisplayDataTest.class, "1"),
