@@ -30,7 +30,6 @@ import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
-//import static org.junit.Assert.assertTrue;
 
 import com.google.cloud.dataflow.sdk.transforms.PTransform;
 import com.google.cloud.dataflow.sdk.transforms.display.DisplayData.Builder;
@@ -38,8 +37,9 @@ import com.google.cloud.dataflow.sdk.transforms.display.DisplayData.Item;
 import com.google.cloud.dataflow.sdk.values.PCollection;
 import com.google.common.testing.EqualsTester;
 
-import org.codehaus.jackson.JsonNode;
-import org.codehaus.jackson.map.ObjectMapper;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 import org.hamcrest.CustomTypeSafeMatcher;
 import org.hamcrest.FeatureMatcher;
 import org.hamcrest.Matcher;
@@ -454,10 +454,10 @@ public class DisplayDataTest {
     Item<?> javaClassItem =
         data.asMap().get(DisplayData.Identifier.of(component.getClass(), "java_class"));
     JsonNode javaClassJson = readJson(javaClassItem.getValueString());
-    assertEquals("DisplayDataTest", javaClassJson.get("simpleName").getTextValue());
+    assertEquals("DisplayDataTest", javaClassJson.get("simpleName").textValue());
     assertEquals(
         "com.google.cloud.dataflow.sdk.transforms.display.DisplayDataTest",
-        javaClassJson.get("name").getTextValue());
+        javaClassJson.get("name").textValue());
 
     assertThat(
         items,
