@@ -23,6 +23,7 @@ import com.google.auto.value.AutoValue;
 import com.google.cloud.dataflow.sdk.transforms.DoFn;
 import com.google.cloud.dataflow.sdk.transforms.PTransform;
 import com.google.cloud.dataflow.sdk.transforms.ParDo;
+import com.google.common.base.MoreObjects;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
@@ -72,6 +73,23 @@ public class DisplayData {
 
   public Map<Identifier, Item<?>> asMap() {
     return entries;
+  }
+
+  @Override
+  public String toString() {
+    StringBuilder builder = new StringBuilder();
+    boolean isFirstLine = true;
+    for (Map.Entry<Identifier, Item<?>> entry : entries.entrySet()) {
+      if (isFirstLine) {
+        isFirstLine = false;
+      } else {
+        builder.append("\n");
+      }
+
+      builder.append(entry);
+    }
+
+    return builder.toString();
   }
 
   /**
@@ -221,8 +239,13 @@ public class DisplayData {
     /**
      * Retrieve a serialized version of the display item value suitable for use as JSON.
      */
-    String getValueString() {
+    public String getValueString() {
       return type.serializeJsonString(value);
+    }
+
+    @Override
+    public String toString() {
+      return getValueString();
     }
 
     private Item<T> withLabel(String label) {
@@ -236,11 +259,11 @@ public class DisplayData {
 
   /**
    * Unique identifier for a display metadata item within a {@link PTransform} instance.
-   * Identifiers are composed of the key the are registered with and a namespace generated from
+   * Identifiers are composed of the key they are registered with and a namespace generated from
    * the class of the component which registered the item.
    *
    * <p>Display metadata registered with the same key from different components will have different
-   * namespaces and will thus both be represented in the composed {@link DisplayData}. If a
+   * namespaces and thus will both be represented in the composed {@link DisplayData}. If a
    * single component registers multiple metadata items with the same key, only the most recent
    * item will be retained; previous versions are discarded.
    */
@@ -251,8 +274,12 @@ public class DisplayData {
     }
 
     abstract String getNamespace();
-
     abstract String getKey();
+
+    @Override
+    public String toString() {
+      return String.format("%s:%s", getNamespace(), getKey());
+    }
   }
 
   /**
@@ -372,8 +399,12 @@ public class DisplayData {
       checkNotNull(key);
       checkArgument(!key.isEmpty());
 
-      Item<T> item = Item.create(currentNs, key, type, value);
       Identifier namespacedKey = Identifier.of(currentNs, key);
+      if (entries.containsKey(namespacedKey)) {
+        throw new IllegalArgumentException("DisplayData key already exists. All display data "
+          + "for a component must be registered with a unique key.\nKey: " + namespacedKey);
+      }
+      Item<T> item = Item.create(currentNs, key, type, value);
       entries.put(namespacedKey, item);
 
       currentItem = item;

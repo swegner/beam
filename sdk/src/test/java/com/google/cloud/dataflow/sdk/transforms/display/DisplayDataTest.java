@@ -271,18 +271,31 @@ public class DisplayDataTest {
   }
 
   @Test
-  public void testReplacesPreviousEntriesWithSameKey() {
+  public void testDuplicateKeyThrowsException() {
+    thrown.expect(IllegalArgumentException.class);
     DisplayData data =
         DisplayData.from(
             new PTransform<PCollection<String>, PCollection<String>>() {
               @Override
               public void populateDisplayData(DisplayData.Builder builder) {
-                builder.add("foo", "bar").add("foo", "baz");
+                builder
+                  .add("foo", "bar")
+                  .add("foo", "baz");
               }
             });
+  }
 
-    assertThat(data.items(), hasSize(1));
-    assertThat(data.items(), hasItem(allOf(hasItemKey(is("foo")), hasValue(is("baz")))));
+  @Test
+  public void testToString() {
+    PTransform<?,?> transform = new PTransform<PCollection<String>, PCollection<String>>() {
+      @Override
+      public void populateDisplayData(DisplayData.Builder builder) {
+        builder.add("foo", "bar");
+      }
+    };
+
+    DisplayData data = DisplayData.from(transform);
+    assertEquals(String.format("%s:foo=bar", transform.getClass().getName()), data.toString());
   }
 
   @Test
@@ -470,12 +483,12 @@ public class DisplayDataTest {
           @Override
           public void populateDisplayData(Builder builder) {
             builder
-                .add("key", (String) null)
-                .add("key", (Class<?>) null)
-                .add("key", (Duration) null)
-                .add("key", (Instant) null)
-                .withLabel(null)
-                .withLinkUrl(null);
+                .add("key1", (String) null)
+                .add("key2", (Class<?>) null)
+                .add("key3", (Duration) null)
+                .add("key4", (Instant) null)
+                  .withLabel(null)
+                  .withLinkUrl(null);
           }
         });
 
