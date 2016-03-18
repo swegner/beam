@@ -22,8 +22,8 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import autovalue.shaded.com.google.common.common.base.Throwables;
 import com.google.auto.value.AutoValue;
 import com.google.cloud.dataflow.sdk.transforms.DoFn;
-import com.google.cloud.dataflow.sdk.transforms.PTransform;
 import com.google.cloud.dataflow.sdk.transforms.ParDo;
+import com.google.cloud.dataflow.sdk.transforms.PTransform;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
@@ -38,11 +38,11 @@ import java.util.Map;
 import java.util.Set;
 
 /**
- * Static display metadata associated with a {@link PTransform}. Display data is useful for
+ * Static display metadata associated with a pipeline component. Display data is useful for
  * pipeline runner UIs and diagnostic dashboards to display details about {@link PTransform PTransforms}
  * that make up a pipeline.
  *
- * <p>{@link PTransform PTransforms} specify their display data by implementing the {@link HasDisplayData}
+ * <p>Components specify their display data by implementing the {@link HasDisplayData}
  * interface.
  */
 public class DisplayData {
@@ -61,12 +61,12 @@ public class DisplayData {
   }
 
   /**
-   * Collect the {@link DisplayData} for a {@link PTransform}. This will traverse all subcomponents
-   * specified via {@link Builder#include} in the given transform.
+   * Collect the {@link DisplayData} from a component. This will traverse all subcomponents
+   * specified via {@link Builder#include} in the given component.
    */
-  public static DisplayData from(PTransform<?, ?> transform) {
-    checkNotNull(transform);
-    return InternalBuilder.forRoot(transform).build();
+  public static DisplayData from(HasDisplayData component) {
+    checkNotNull(component);
+    return InternalBuilder.forRoot(component).build();
   }
 
   public Collection<Item<?>> items() {
@@ -95,7 +95,7 @@ public class DisplayData {
   }
 
   /**
-   * Utility to build up display metadata from a @{link PTransform} and its included
+   * Utility to build up display metadata from a component and its included
    * subcomponents.
    */
   public interface Builder {
@@ -260,7 +260,7 @@ public class DisplayData {
   }
 
   /**
-   * Unique identifier for a display metadata item within a {@link PTransform} instance.
+   * Unique identifier for a display metadata item within a component.
    * Identifiers are composed of the key they are registered with and a namespace generated from
    * the class of the component which registered the item.
    *

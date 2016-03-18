@@ -202,21 +202,7 @@ public class DoFnTest implements Serializable {
           public void processElement(ProcessContext c) throws Exception {}
         };
 
-    DisplayData data = collectDisplayData(usesDefault);
+    DisplayData data = DisplayData.from(usesDefault);
     assertThat(data.items(), empty());
-  }
-
-  private DisplayData collectDisplayData(final DoFn<String, String> fn) {
-    // Host within a PTransform which does not write any of its own metadata
-    // to isolate the DoFn behavior.
-    PTransform<?, ?> transform =
-        new PTransform<PCollection<String>, PCollection<String>>() {
-          @Override
-          public void populateDisplayData(Builder builder) {
-            builder.include(fn);
-          }
-        };
-
-    return DisplayData.from(transform);
   }
 }

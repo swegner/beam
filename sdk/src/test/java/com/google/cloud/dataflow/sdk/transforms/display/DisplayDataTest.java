@@ -122,8 +122,7 @@ public class DisplayDataTest {
   @Test
   public void testCanBuild() {
     DisplayData data =
-        DisplayData.from(
-            new PTransform<PCollection<String>, PCollection<String>>() {
+        DisplayData.from(new HasDisplayData() {
               @Override
               public void populateDisplayData(DisplayData.Builder builder) {
                 builder.add("Foo", "bar");
@@ -138,7 +137,7 @@ public class DisplayDataTest {
   public void testAsMap() {
     DisplayData data =
         DisplayData.from(
-            new PTransform<PCollection<String>, PCollection<String>>() {
+            new HasDisplayData() {
               @Override
               public void populateDisplayData(DisplayData.Builder builder) {
                 builder.add("foo", "bar");
@@ -154,14 +153,14 @@ public class DisplayDataTest {
   @Test
   public void testItemProperties() {
     final Instant value = Instant.now();
-    DisplayData data = DisplayData.from(new ConcreteTransform(value));
+    DisplayData data = DisplayData.from(new ConcreteComponent(value));
 
     @SuppressWarnings("unchecked")
     DisplayData.Item<Instant> item = (DisplayData.Item<Instant>) data.items().toArray()[0];
     assertThat(
         item,
         allOf(
-            hasNamespace(Matchers.<Class<?>>is(ConcreteTransform.class)),
+            hasNamespace(Matchers.<Class<?>>is(ConcreteComponent.class)),
             hasKey("now"),
             hasType(is(DisplayData.Type.TIMESTAMP)),
             hasValue(is(value)),
@@ -170,10 +169,10 @@ public class DisplayDataTest {
             hasUrl(is("http://time.gov"))));
   }
 
-  static class ConcreteTransform extends PTransform<PCollection<String>, PCollection<String>> {
+  static class ConcreteComponent implements HasDisplayData {
     private Instant value;
 
-    ConcreteTransform(Instant value) {
+    ConcreteComponent(Instant value) {
       this.value = value;
     }
 
@@ -187,7 +186,7 @@ public class DisplayDataTest {
   public void testUnspecifiedOptionalProperties() {
     DisplayData data =
         DisplayData.from(
-            new PTransform<PCollection<String>, PCollection<String>>() {
+            new HasDisplayData() {
               @Override
               public void populateDisplayData(DisplayData.Builder builder) {
                 builder.add("foo", "bar");
@@ -211,7 +210,7 @@ public class DisplayDataTest {
 
     DisplayData data =
         DisplayData.from(
-            new PTransform<PCollection<String>, PCollection<String>>() {
+            new HasDisplayData() {
               @Override
               public void populateDisplayData(DisplayData.Builder builder) {
                 builder.include(subComponent);
@@ -241,7 +240,7 @@ public class DisplayDataTest {
   public void testAnonymousClassNamespace() {
     DisplayData data =
         DisplayData.from(
-            new PTransform<PCollection<String>, PCollection<String>>() {
+            new HasDisplayData() {
               @Override
               public void populateDisplayData(DisplayData.Builder builder) {
                 builder.add("foo", "bar");
@@ -256,7 +255,7 @@ public class DisplayDataTest {
   public void testAcceptsKeysWithDifferentNamespaces() {
     DisplayData data =
         DisplayData.from(
-            new PTransform<PCollection<String>, PCollection<String>>() {
+            new HasDisplayData() {
               @Override
               public void populateDisplayData(DisplayData.Builder builder) {
                 builder
@@ -278,7 +277,7 @@ public class DisplayDataTest {
   public void testDuplicateKeyThrowsException() {
     thrown.expect(IllegalArgumentException.class);
     DisplayData.from(
-        new PTransform<PCollection<String>, PCollection<String>>() {
+        new HasDisplayData() {
           @Override
           public void populateDisplayData(DisplayData.Builder builder) {
             builder
@@ -290,15 +289,15 @@ public class DisplayDataTest {
 
   @Test
   public void testToString() {
-    PTransform<?,?> transform = new PTransform<PCollection<String>, PCollection<String>>() {
+    HasDisplayData component = new HasDisplayData() {
       @Override
       public void populateDisplayData(DisplayData.Builder builder) {
         builder.add("foo", "bar");
       }
     };
 
-    DisplayData data = DisplayData.from(transform);
-    assertEquals(String.format("%s:foo=bar", transform.getClass().getName()), data.toString());
+    DisplayData data = DisplayData.from(component);
+    assertEquals(String.format("%s:foo=bar", component.getClass().getName()), data.toString());
   }
 
   @Test
@@ -319,8 +318,8 @@ public class DisplayDataTest {
           }
         };
 
-    PTransform<?, ?> transform =
-        new PTransform<PCollection<String>, PCollection<String>>() {
+    HasDisplayData component =
+        new HasDisplayData() {
           @Override
           public void populateDisplayData(Builder builder) {
             builder.include(componentA);
@@ -330,13 +329,13 @@ public class DisplayDataTest {
     componentA.subComponent = componentB;
     componentB.subComponent = componentA;
 
-    DisplayData data = DisplayData.from(transform);
+    DisplayData data = DisplayData.from(component);
     assertThat(data.items(), hasSize(2));
   }
 
   @Test
   public void testIncludesSubcomponentsWithObjectEquality() {
-    DisplayData data = DisplayData.from(new PTransform<PCollection<String>, PCollection<String>>() {
+    DisplayData data = DisplayData.from(new HasDisplayData() {
       @Override
       public void populateDisplayData(DisplayData.Builder builder) {
         builder
@@ -387,7 +386,7 @@ public class DisplayDataTest {
   public void testTypeMappings() {
     DisplayData data =
         DisplayData.from(
-            new PTransform<PCollection<String>, PCollection<String>>() {
+            new HasDisplayData() {
               @Override
               public void populateDisplayData(DisplayData.Builder builder) {
                 builder
@@ -421,7 +420,7 @@ public class DisplayDataTest {
     final Instant now = Instant.now();
     final Duration oneHour = Duration.standardHours(1);
 
-    PTransform<?,?> transform = new PTransform<PCollection<String>, PCollection<String>>() {
+    HasDisplayData component = new HasDisplayData() {
       @Override
       public void populateDisplayData(DisplayData.Builder builder) {
         builder
@@ -433,7 +432,7 @@ public class DisplayDataTest {
           .add("duration", oneHour);
       }
     };
-    DisplayData data = DisplayData.from(transform);
+    DisplayData data = DisplayData.from(component);
 
     Collection<Item<?>> items = data.items();
     assertThat(items, hasItem(allOf(hasKey("string"), hasValueString(is("foobar")))));
@@ -441,7 +440,7 @@ public class DisplayDataTest {
     assertThat(items, hasItem(allOf(hasKey("float"), hasValueString(is("3.14")))));
     assertThat(items, hasItem(hasKey("java_class")));
     Item<?> javaClassItem =
-        data.asMap().get(DisplayData.Identifier.of(transform.getClass(), "java_class"));
+        data.asMap().get(DisplayData.Identifier.of(component.getClass(), "java_class"));
     JsonNode javaClassJson = readJson(javaClassItem.getValueString());
     assertEquals("DisplayDataTest", javaClassJson.get("simpleName").getTextValue());
     assertEquals(
@@ -475,21 +474,23 @@ public class DisplayDataTest {
           }
         };
 
-    PTransform<?, ?> transform =
-        new PTransform<PCollection<String>, PCollection<String>>() {
+    HasDisplayData component =
+        new HasDisplayData() {
           @Override
           public void populateDisplayData(DisplayData.Builder builder) {
-            builder.include(subComponent).add("alpha", "bravo");
+            builder
+              .include(subComponent)
+              .add("alpha", "bravo");
           }
         };
 
-    DisplayData data = DisplayData.from(transform);
+    DisplayData data = DisplayData.from(component);
     assertThat(
         data.items(),
         hasItem(
             allOf(
                 hasKey("alpha"),
-                hasNamespace(Matchers.<Class<?>>is(transform.getClass())))));
+                hasNamespace(Matchers.<Class<?>>is(component.getClass())))));
   }
 
   @Test
@@ -502,7 +503,7 @@ public class DisplayDataTest {
   public void testIncludeNull() {
     thrown.expect(NullPointerException.class);
     DisplayData.from(
-        new PTransform<PCollection<String>, PCollection<String>>() {
+        new HasDisplayData() {
           @Override
           public void populateDisplayData(Builder builder) {
             builder.include(null);
@@ -514,7 +515,7 @@ public class DisplayDataTest {
   public void testNullKey() {
     thrown.expect(NullPointerException.class);
     DisplayData.from(
-        new PTransform<PCollection<String>, PCollection<String>>() {
+        new HasDisplayData() {
           @Override
           public void populateDisplayData(Builder builder) {
             builder.add(null, "foo");
@@ -525,7 +526,7 @@ public class DisplayDataTest {
   @Test
   public void testRejectsNullValues() {
     DisplayData.from(
-      new PTransform<PCollection<String>, PCollection<String>>() {
+      new HasDisplayData() {
         @Override
         public void populateDisplayData(Builder builder) {
           try {
@@ -561,7 +562,7 @@ public class DisplayDataTest {
 
   public void testAcceptsNullOptionalValues() {
     DisplayData.from(
-      new PTransform<PCollection<String>, PCollection<String>>() {
+      new HasDisplayData() {
         @Override
         public void populateDisplayData(Builder builder) {
           builder.add("key", "value")
