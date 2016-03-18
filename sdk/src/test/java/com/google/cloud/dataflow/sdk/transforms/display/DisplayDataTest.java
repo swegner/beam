@@ -30,6 +30,7 @@ import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
 
 import com.google.cloud.dataflow.sdk.transforms.PTransform;
 import com.google.cloud.dataflow.sdk.transforms.display.DisplayData.Builder;
@@ -39,6 +40,7 @@ import com.google.common.testing.EqualsTester;
 
 import org.codehaus.jackson.JsonNode;
 import org.codehaus.jackson.map.ObjectMapper;
+import org.hamcrest.CustomTypeSafeMatcher;
 import org.hamcrest.FeatureMatcher;
 import org.hamcrest.Matcher;
 import org.hamcrest.Matchers;
@@ -53,6 +55,7 @@ import org.junit.runners.JUnit4;
 import java.io.IOException;
 import java.util.Collection;
 import java.util.Map;
+import java.util.regex.Pattern;
 
 /**
  * Tests for {@link DisplayData} class.
@@ -248,7 +251,16 @@ public class DisplayDataTest {
             });
 
     DisplayData.Item<?> item = (DisplayData.Item<?>) data.items().toArray()[0];
-    assertThat(item.getNamespace(), not(isEmptyOrNullString()));
+    final Pattern anonClassRegex = Pattern.compile(
+        Pattern.quote(DisplayDataTest.class.getName()) + "\\$\\d+$");
+    assertThat(item.getNamespace(), new CustomTypeSafeMatcher<String>(
+        "anonymous class regex: " + anonClassRegex) {
+      @Override
+      protected boolean matchesSafely(String item) {
+        java.util.regex.Matcher m = anonClassRegex.matcher(item);
+        return m.matches();
+      }
+    });
   }
 
   @Test
