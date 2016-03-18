@@ -367,6 +367,7 @@ public class DisplayData {
 
     @Override
     public ItemBuilder add(String key, String value) {
+      checkNotNull(value);
       return addItem(key, Type.STRING, value);
     }
 
@@ -382,16 +383,19 @@ public class DisplayData {
 
     @Override
     public ItemBuilder add(String key, Instant value) {
+      checkNotNull(value);
       return addItem(key, Type.TIMESTAMP, value);
     }
 
     @Override
     public ItemBuilder add(String key, Duration value) {
+      checkNotNull(value);
       return addItem(key, Type.DURATION, value);
     }
 
     @Override
     public ItemBuilder add(String key, Class<?> value) {
+      checkNotNull(value);
       return addItem(key, Type.JAVA_CLASS, value);
     }
 

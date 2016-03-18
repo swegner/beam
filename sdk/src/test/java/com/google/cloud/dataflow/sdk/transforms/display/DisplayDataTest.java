@@ -477,20 +477,52 @@ public class DisplayDataTest {
   }
 
   @Test
-  public void testAcceptsNullValues() {
+  public void testRejectsNullValues() {
     DisplayData.from(
-        new PTransform<PCollection<String>, PCollection<String>>() {
-          @Override
-          public void populateDisplayData(Builder builder) {
-            builder
-                .add("key1", (String) null)
-                .add("key2", (Class<?>) null)
-                .add("key3", (Duration) null)
-                .add("key4", (Instant) null)
+      new PTransform<PCollection<String>, PCollection<String>>() {
+        @Override
+        public void populateDisplayData(Builder builder) {
+          try {
+            builder.add("key", (String) null);
+            throw new RuntimeException("Should throw on null string value");
+          } catch (NullPointerException ex) {
+            // Expected
+          }
+
+          try {
+            builder.add("key", (Class<?>) null);
+            throw new RuntimeException("Should throw on null class value");
+          } catch (NullPointerException ex) {
+            // Expected
+          }
+
+          try {
+            builder.add("key", (Duration) null);
+            throw new RuntimeException("Should throw on null duration value");
+          } catch (NullPointerException ex) {
+            // Expected
+          }
+
+          try {
+            builder.add("key", (Instant) null);
+            throw new RuntimeException("Should throw on null instant value");
+          } catch (NullPointerException ex) {
+            // Expected
+          }
+        }
+      });
+  }
+
+  public void testAcceptsNullOptionalValues() {
+    DisplayData.from(
+      new PTransform<PCollection<String>, PCollection<String>>() {
+        @Override
+        public void populateDisplayData(Builder builder) {
+          builder.add("key", "value")
                   .withLabel(null)
                   .withLinkUrl(null);
-          }
-        });
+        }
+      });
 
     // Should not throw
   }
