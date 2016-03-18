@@ -109,43 +109,43 @@ public class DisplayData {
 
     /**
      * Register the given string display metadata. The metadata item will be registered with type
-     * {@link Type#STRING}, and is identified by the specified key and namespace from the current
-     * transform or component.
+     * {@link DisplayData.Type#STRING}, and is identified by the specified key and namespace from
+     * the current transform or component.
      */
     ItemBuilder add(String key, String value);
 
     /**
      * Register the given numeric display metadata. The metadata item will be registered with type
-     * {@link Type#INTEGER}, and is identified by the specified key and namespace from the current
-     * transform or component.
+     * {@link DisplayData.Type#INTEGER}, and is identified by the specified key and namespace from
+     * the current transform or component.
      */
     ItemBuilder add(String key, long value);
 
     /**
      * Register the given floating point display metadata. The metadata item will be registered with
-     * type {@link Type#FLOAT}, and is identified by the specified key and namespace from the
-     * current transform or component.
+     * type {@link DisplayData.Type#FLOAT}, and is identified by the specified key and namespace
+     * from the current transform or component.
      */
     ItemBuilder add(String key, double value);
 
     /**
      * Register the given timestamp display metadata. The metadata item will be registered with type
-     * {@link Type#TIMESTAMP}, and is identified by the specified key and namespace from the current
-     * transform or component.
+     * {@link DisplayData.Type#TIMESTAMP}, and is identified by the specified key and namespace from
+     * the current transform or component.
      */
     ItemBuilder add(String key, Instant value);
 
     /**
      * Register the given duration display metadata. The metadata item will be registered with type
-     * {@link Type#DURATION}, and is identified by the specified key and namespace from the current
-     * transform or component.
+     * {@link DisplayData.Type#DURATION}, and is identified by the specified key and namespace from
+     * the current transform or component.
      */
     ItemBuilder add(String key, Duration value);
 
     /**
      * Register the given class display metadata. The metadata item will be registered with type
-     * {@link Type#JAVA_CLASS}, and is identified by the specified key and namespace from the
-     * current transform or component.
+     * {@link DisplayData.Type#JAVA_CLASS}, and is identified by the specified key and namespace
+     * from the current transform or component.
      */
     ItemBuilder add(String key, Class<?> value);
   }
@@ -204,8 +204,8 @@ public class DisplayData {
       return key;
     }
     /**
-     * Retrieve the {@link Type} of display metadata. All metadata conforms to a predefined set of
-     * allowed types.
+     * Retrieve the {@link DisplayData.Type} of display metadata. All metadata conforms to a
+     * predefined set of allowed types.
      */
     public Type getType() {
       return type;
