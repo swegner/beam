@@ -199,7 +199,7 @@ public class DoFnTest implements Serializable {
     DoFn<String, String> usesDefault =
         new DoFn<String, String>() {
           @Override
-          public void processElement(DoFn<String, String>.ProcessContext c) throws Exception {}
+          public void processElement(ProcessContext c) throws Exception {}
         };
 
     DisplayData data = collectDisplayData(usesDefault);

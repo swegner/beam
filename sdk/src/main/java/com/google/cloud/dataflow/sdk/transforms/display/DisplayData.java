@@ -355,9 +355,9 @@ public class DisplayData {
     private final Map<Identifier, Item<?>> entries;
     private final Set<Object> visited;
 
-    private Class<?> currentNs;
-    private Item<?> currentItem;
-    private Identifier currentIdentifier;
+    private Class<?> latestNs;
+    private Item<?> latestItem;
+    private Identifier latestIdentifier;
 
     private InternalBuilder() {
       this.entries = Maps.newHashMap();
@@ -375,10 +375,10 @@ public class DisplayData {
       checkNotNull(subComponent);
       boolean newComponent = visited.add(subComponent);
       if (newComponent) {
-        Class prevNs = this.currentNs;
-        this.currentNs = subComponent.getClass();
+        Class prevNs = this.latestNs;
+        this.latestNs = subComponent.getClass();
         subComponent.populateDisplayData(this);
-        this.currentNs = prevNs;
+        this.latestNs = prevNs;
       }
 
       return this;
@@ -422,7 +422,7 @@ public class DisplayData {
       checkNotNull(key);
       checkArgument(!key.isEmpty());
 
-      Identifier id = Identifier.of(currentNs, key);
+      Identifier id = Identifier.of(latestNs, key);
       if (entries.containsKey(id)) {
         throw new IllegalArgumentException("DisplayData key already exists. All display data "
           + "for a component must be registered with a unique key.\nKey: " + id);
@@ -430,27 +430,27 @@ public class DisplayData {
       Item<T> item = Item.create(id.getNamespace(), key, type, value);
       entries.put(id, item);
 
-      currentItem = item;
-      currentIdentifier = id;
+      latestItem = item;
+      latestIdentifier = id;
 
       return this;
     }
 
     @Override
     public ItemBuilder withLabel(String label) {
-      Item<?> newItem = currentItem.withLabel(label);
-      entries.put(currentIdentifier, newItem);
+      Item<?> newItem = latestItem.withLabel(label);
+      entries.put(latestIdentifier, newItem);
 
-      currentItem = newItem;
+      latestItem = newItem;
       return this;
     }
 
     @Override
     public ItemBuilder withLinkUrl(String url) {
-      Item<?> newItem = currentItem.withUrl(url);
-      entries.put(currentIdentifier, newItem);
+      Item<?> newItem = latestItem.withUrl(url);
+      entries.put(latestIdentifier, newItem);
 
-      currentItem = newItem;
+      latestItem = newItem;
       return this;
     }
 

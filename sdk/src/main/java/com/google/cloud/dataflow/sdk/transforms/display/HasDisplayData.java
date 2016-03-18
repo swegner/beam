@@ -22,9 +22,9 @@ import com.google.cloud.dataflow.sdk.transforms.PTransform;
  * Marker interface for {@link PTransform PTransforms} and components used within {@link PTransform PTransforms} to
  * specify display metadata to be used within UIs and diagnostic tools.
  *
- *  <p>Display metadata is optional and may be collected during pipeline construction. It should
- *  only be used to informational purposes. Tools and components should not assume that display data
- *  will always be collected, or that collected display data will always be displayed.
+ * <p>Display metadata is optional and may be collected during pipeline construction. It should
+ * only be used to informational purposes. Tools and components should not assume that display data
+ * will always be collected, or that collected display data will always be displayed.
  */
 public interface HasDisplayData {
   /**
@@ -32,19 +32,19 @@ public interface HasDisplayData {
    * directly on the provided builder, as well as via included sub-components.
    *
    * <code>
-   *  \@Override
-   *  public void populateDisplayData(DisplayData.Builder builder) {
-   *    builder
-   *      .include(subComponent)
-   *      .add("minFilter", 42)
-   *      .add("topic", "projects/myproject/topics/mytopic")
-   *        .withLabel("Pub/Sub Topic")
-   *      .add("serviceInstance", "myservice.com/fizzbang")
-   *        .withLinkUrl("http://www.myservice.com/fizzbang");
-   *  }
+   * \@Override
+   * public void populateDisplayData(DisplayData.Builder builder) {
+   *  builder
+   *     .include(subComponent)
+   *     .add("minFilter", 42)
+   *     .add("topic", "projects/myproject/topics/mytopic")
+   *       .withLabel("Pub/Sub Topic")
+   *     .add("serviceInstance", "myservice.com/fizzbang")
+   *       .withLinkUrl("http://www.myservice.com/fizzbang");
+   * }
    * </code>
    *
-   * @param builder Fluent builder API to register display metadata.
+   * @param builder The builder to populate with display metadata.
    */
   void populateDisplayData(DisplayData.Builder builder);
 }
