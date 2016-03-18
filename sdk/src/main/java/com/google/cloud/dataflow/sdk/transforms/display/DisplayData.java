@@ -20,8 +20,8 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.cloud.dataflow.sdk.transforms.DoFn;
-import com.google.cloud.dataflow.sdk.transforms.ParDo;
 import com.google.cloud.dataflow.sdk.transforms.PTransform;
+import com.google.cloud.dataflow.sdk.transforms.ParDo;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
@@ -39,8 +39,8 @@ import java.util.Set;
 
 /**
  * Static display metadata associated with a pipeline component. Display data is useful for
- * pipeline runner UIs and diagnostic dashboards to display details about {@link PTransform PTransforms}
- * that make up a pipeline.
+ * pipeline runner UIs and diagnostic dashboards to display details about
+ * {@link PTransform PTransforms} that make up a pipeline.
  *
  * <p>Components specify their display data by implementing the {@link HasDisplayData}
  * interface.
@@ -222,7 +222,7 @@ public class DisplayData {
      * Retrieve the optional label for an item. The label is a human-readable description of what
      * the metadata represents. UIs may choose to display the label instead of the item key.
      *
-     * </p>If no label was specified, this will return {@code null}.
+     * <p>If no label was specified, this will return {@code null}.
      */
     public String getLabel() {
       return label;
@@ -232,7 +232,7 @@ public class DisplayData {
      * Retrieve the optional link URL for an item. The URL points to an address where the reader
      * can find additional context for the display metadata.
      *
-     * </p>If no URL was specified, this will return {@code null}.
+     * <p>If no URL was specified, this will return {@code null}.
      */
     public String getUrl() {
       return url;
