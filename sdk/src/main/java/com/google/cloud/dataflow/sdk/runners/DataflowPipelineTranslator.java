@@ -29,6 +29,7 @@ import static com.google.cloud.dataflow.sdk.util.Structs.addString;
 import static com.google.cloud.dataflow.sdk.util.Structs.getString;
 import static com.google.common.base.Preconditions.checkArgument;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.google.api.services.dataflow.model.AutoscalingSettings;
 import com.google.api.services.dataflow.model.DataflowPackage;
 import com.google.api.services.dataflow.model.Disk;
@@ -59,6 +60,7 @@ import com.google.cloud.dataflow.sdk.transforms.GroupByKey;
 import com.google.cloud.dataflow.sdk.transforms.PTransform;
 import com.google.cloud.dataflow.sdk.transforms.ParDo;
 import com.google.cloud.dataflow.sdk.transforms.View;
+import com.google.cloud.dataflow.sdk.transforms.display.DisplayData;
 import com.google.cloud.dataflow.sdk.transforms.windowing.DefaultTrigger;
 import com.google.cloud.dataflow.sdk.transforms.windowing.Window;
 import com.google.cloud.dataflow.sdk.util.AppliedCombineFn;
@@ -83,6 +85,7 @@ import com.google.common.base.Strings;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import com.google.common.collect.Lists;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -548,6 +551,7 @@ public class DataflowPipelineTranslator {
       currentStep.setKind(type);
       steps.add(currentStep);
       addInput(PropertyNames.USER_NAME, getFullName(transform));
+      addDisplayData(PropertyNames.DISPLAY_METADATA, DisplayData.from(transform));
     }
 
     @Override
@@ -723,6 +727,16 @@ public class DataflowPipelineTranslator {
       }
 
       outputInfoList.add(outputInfo);
+    }
+
+    private void addDisplayData(String name, DisplayData displayData) {
+      List<Map<String, Object>> serializedItems = Lists.newArrayList();
+      ObjectMapper mapper = MAPPER.setSerializationInclusion(JsonInclude.Include.NON_NULL);
+      for (DisplayData.Item item : displayData.items()) {
+        serializedItems.add(mapper.convertValue(item, Map.class));
+      }
+
+      addList(getProperties(), name, serializedItems);
     }
 
     @Override

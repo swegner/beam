@@ -43,13 +43,7 @@ import com.google.cloud.dataflow.sdk.options.DataflowPipelineOptions;
 import com.google.cloud.dataflow.sdk.options.DataflowPipelineWorkerPoolOptions;
 import com.google.cloud.dataflow.sdk.options.PipelineOptionsFactory;
 import com.google.cloud.dataflow.sdk.runners.DataflowPipelineTranslator.TranslationContext;
-import com.google.cloud.dataflow.sdk.transforms.Count;
-import com.google.cloud.dataflow.sdk.transforms.Create;
-import com.google.cloud.dataflow.sdk.transforms.DoFn;
-import com.google.cloud.dataflow.sdk.transforms.PTransform;
-import com.google.cloud.dataflow.sdk.transforms.ParDo;
-import com.google.cloud.dataflow.sdk.transforms.Sum;
-import com.google.cloud.dataflow.sdk.transforms.View;
+import com.google.cloud.dataflow.sdk.transforms.*;
 import com.google.cloud.dataflow.sdk.transforms.display.DisplayData;
 import com.google.cloud.dataflow.sdk.util.GcsUtil;
 import com.google.cloud.dataflow.sdk.util.OutputReference;
@@ -79,15 +73,16 @@ import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
 import java.io.IOException;
+import java.io.Serializable;
 import java.util.*;
 
 /**
  * Tests for DataflowPipelineTranslator.
  */
 @RunWith(JUnit4.class)
-public class DataflowPipelineTranslatorTest {
+public class DataflowPipelineTranslatorTest implements Serializable {
 
-  @Rule public ExpectedException thrown = ExpectedException.none();
+  @Rule public transient ExpectedException thrown = ExpectedException.none();
 
   // A Custom Mockito matcher for an initial Job that checks that all
   // expected fields are set.
@@ -821,14 +816,13 @@ public class DataflowPipelineTranslatorTest {
         pipeline, pipeline.getRunner(), Collections.<DataflowPackage>emptyList()).getJob();
 
     List<Step> steps = job.getSteps();
-    assertEquals(1, steps.size());
+    assertEquals(2, steps.size());
 
     Map<String, Object> parDoProperties = steps.get(1).getProperties();
     assertThat(parDoProperties, hasKey("display_metadata"));
 
     Collection<Map<String, String>> displayData =
             (Collection<Map<String, String>>) parDoProperties.get("display_metadata");
-    assertThat(displayData, hasSize(2));
 
     ImmutableList expectedDisplayData = ImmutableList.of(
             ImmutableMap.<String, String>builder()
@@ -847,6 +841,7 @@ public class DataflowPipelineTranslatorTest {
               .put("linkUrl", "http://www.google.com")
               .build()
     );
+
     assertEquals(expectedDisplayData, displayData);
   }
 }
