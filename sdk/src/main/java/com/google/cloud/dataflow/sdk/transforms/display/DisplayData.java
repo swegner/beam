@@ -254,7 +254,7 @@ public class DisplayData {
      *
      * <p>If no URL was specified, this will return {@code null}.
      */
-    public String getUrl() {
+    public String getLinkUrl() {
       return url;
     }
 
