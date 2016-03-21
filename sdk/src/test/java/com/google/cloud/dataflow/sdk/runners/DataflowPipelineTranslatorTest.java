@@ -19,11 +19,8 @@ package com.google.cloud.dataflow.sdk.runners;
 import static com.google.cloud.dataflow.sdk.util.Structs.addObject;
 import static com.google.cloud.dataflow.sdk.util.Structs.getDictionary;
 import static com.google.cloud.dataflow.sdk.util.Structs.getString;
-import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.instanceOf;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
+import static org.hamcrest.Matchers.*;
+import static org.junit.Assert.*;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Matchers.argThat;
@@ -53,6 +50,7 @@ import com.google.cloud.dataflow.sdk.transforms.PTransform;
 import com.google.cloud.dataflow.sdk.transforms.ParDo;
 import com.google.cloud.dataflow.sdk.transforms.Sum;
 import com.google.cloud.dataflow.sdk.transforms.View;
+import com.google.cloud.dataflow.sdk.transforms.display.DisplayData;
 import com.google.cloud.dataflow.sdk.util.GcsUtil;
 import com.google.cloud.dataflow.sdk.util.OutputReference;
 import com.google.cloud.dataflow.sdk.util.PropertyNames;
@@ -81,11 +79,7 @@ import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
 import java.io.IOException;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 /**
  * Tests for DataflowPipelineTranslator.
@@ -795,5 +789,64 @@ public class DataflowPipelineTranslatorTest {
 
     Step collectionToSingletonStep = steps.get(2);
     assertEquals("CollectionToSingleton", collectionToSingletonStep.getKind());
+  }
+
+  @Test
+  public void testStepDisplayData() throws Exception {
+    DataflowPipelineOptions options = buildPipelineOptions();
+    DataflowPipelineTranslator translator = DataflowPipelineTranslator.fromOptions(options);
+    DataflowPipeline pipeline = DataflowPipeline.create(options);
+
+    DoFn<Integer, Integer> fn = new DoFn<Integer, Integer>() {
+      @Override
+      public void processElement(ProcessContext c) throws Exception {
+        c.output(c.element());
+      }
+
+      @Override
+      public void populateDisplayData(DisplayData.Builder builder) {
+        builder
+                .add("foo", "bar")
+                .add("foo2", DataflowPipelineTranslatorTest.class)
+                .withLabel("Test Class")
+                .withLinkUrl("http://www.google.com");
+      }
+    };
+
+    pipeline
+      .apply(Create.of(1, 2, 3))
+      .apply(ParDo.of(fn));
+
+    Job job = translator.translate(
+        pipeline, pipeline.getRunner(), Collections.<DataflowPackage>emptyList()).getJob();
+
+    List<Step> steps = job.getSteps();
+    assertEquals(1, steps.size());
+
+    Map<String, Object> parDoProperties = steps.get(1).getProperties();
+    assertThat(parDoProperties, hasKey("display_metadata"));
+
+    Collection<Map<String, String>> displayData =
+            (Collection<Map<String, String>>) parDoProperties.get("display_metadata");
+    assertThat(displayData, hasSize(2));
+
+    ImmutableList expectedDisplayData = ImmutableList.of(
+            ImmutableMap.<String, String>builder()
+              .put("namespace", fn.getClass().getName())
+              .put("key", "foo")
+              .put("type", "STRING")
+              .put("value", "bar")
+              .build(),
+            ImmutableMap.<String, String>builder()
+              .put("namespace", fn.getClass().getName())
+              .put("key", "foo2")
+              .put("type", "JAVA_CLASS")
+              .put("value", DataflowPipelineTranslatorTest.class.getName())
+              .put("shortValue", DataflowPipelineTranslatorTest.class.getSimpleName())
+              .put("label", "Test Class")
+              .put("linkUrl", "http://www.google.com")
+              .build()
+    );
+    assertEquals(expectedDisplayData, displayData);
   }
 }
