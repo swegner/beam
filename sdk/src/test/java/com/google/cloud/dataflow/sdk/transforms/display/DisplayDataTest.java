@@ -90,9 +90,7 @@ public class DisplayDataTest {
                 .include(subComponent1)
                 .include(subComponent2)
                 .add("MinSproggles", 200)
-                .withLabel(
-                    "Mimimum number of sproggles expected per-input. "
-                        + "Anything less will be discarded")
+                .withLabel("Mimimum Required Sproggles")
                 .add("LazerOrientation", "NORTH")
                 .add("TimeBomb", Instant.now().plus(Duration.standardDays(1)))
                 .add("FilterLogic", subComponent1.getClass())
