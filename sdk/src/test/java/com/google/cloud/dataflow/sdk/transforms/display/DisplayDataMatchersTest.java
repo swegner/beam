@@ -19,6 +19,7 @@ package com.google.cloud.dataflow.sdk.transforms.display;
 import static com.google.cloud.dataflow.sdk.transforms.display.DisplayDataMatchers.hasDisplayItem;
 import static com.google.cloud.dataflow.sdk.transforms.display.DisplayDataMatchers.hasKey;
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.core.StringStartsWith.startsWith;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
@@ -29,6 +30,7 @@ import com.google.cloud.dataflow.sdk.values.PCollection;
 
 import org.hamcrest.Description;
 import org.hamcrest.Matcher;
+import org.hamcrest.Matchers;
 import org.hamcrest.StringDescription;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -56,7 +58,7 @@ public class DisplayDataMatchersTest {
     matcher.describeTo(desc);
     matcher.describeMismatch(DisplayData.none(), mismatchDesc);
 
-    assertThat(desc.toString(), containsString("display data with item: <any>"));
+    assertThat(desc.toString(), startsWith("display data with item: "));
     assertThat(mismatchDesc.toString(), containsString("found 0 non-matching items"));
   }
 
