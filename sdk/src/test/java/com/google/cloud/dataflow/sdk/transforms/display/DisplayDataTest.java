@@ -37,15 +37,14 @@ import com.google.cloud.dataflow.sdk.transforms.display.DisplayData.Item;
 import com.google.cloud.dataflow.sdk.values.PCollection;
 import com.google.common.testing.EqualsTester;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-
 import org.hamcrest.CustomTypeSafeMatcher;
 import org.hamcrest.FeatureMatcher;
 import org.hamcrest.Matcher;
 import org.hamcrest.Matchers;
 import org.joda.time.Duration;
 import org.joda.time.Instant;
+import org.joda.time.format.DateTimeFormatter;
+import org.joda.time.format.ISODateTimeFormat;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -63,6 +62,7 @@ import java.util.regex.Pattern;
 @RunWith(JUnit4.class)
 public class DisplayDataTest {
   @Rule public ExpectedException thrown = ExpectedException.none();
+  private static final DateTimeFormatter ISO_FORMATTER = ISODateTimeFormat.dateTime();
 
   @Test
   public void testTypicalUsage() {
@@ -111,7 +111,7 @@ public class DisplayDataTest {
                     Matchers.<Class<?>>isOneOf(
                         transform.getClass(), subComponent1.getClass(), subComponent2.getClass())),
                 hasType(notNullValue(DisplayData.Type.class)),
-                hasValueString(not(isEmptyOrNullString())))));
+                hasValue(not(isEmptyOrNullString())))));
   }
 
   @Test
@@ -145,7 +145,7 @@ public class DisplayDataTest {
               }
             });
 
-    Map<DisplayData.Identifier, DisplayData.Item<?>> map = data.asMap();
+    Map<DisplayData.Identifier, DisplayData.Item> map = data.asMap();
     assertEquals(map.size(), 1);
     assertThat(data, hasDisplayItem(hasKey("foo")));
     assertEquals(map.values(), data.items());
@@ -157,15 +157,15 @@ public class DisplayDataTest {
     DisplayData data = DisplayData.from(new ConcreteComponent(value));
 
     @SuppressWarnings("unchecked")
-    DisplayData.Item<Instant> item = (DisplayData.Item<Instant>) data.items().toArray()[0];
+    DisplayData.Item item = (DisplayData.Item) data.items().toArray()[0];
     assertThat(
         item,
         allOf(
             hasNamespace(Matchers.<Class<?>>is(ConcreteComponent.class)),
             hasKey("now"),
             hasType(is(DisplayData.Type.TIMESTAMP)),
-            hasValue(is(value)),
-            hasValueString(is(Long.toString(value.getMillis()))),
+            hasValue(is(ISO_FORMATTER.print(value))),
+            hasShortValue(nullValue(String.class)),
             hasLabel(is("the current instant")),
             hasUrl(is("http://time.gov"))));
   }
@@ -248,7 +248,7 @@ public class DisplayDataTest {
               }
             });
 
-    DisplayData.Item<?> item = (DisplayData.Item<?>) data.items().toArray()[0];
+    DisplayData.Item item = (DisplayData.Item) data.items().toArray()[0];
     final Pattern anonClassRegex = Pattern.compile(
         Pattern.quote(DisplayDataTest.class.getName()) + "\\$\\d+$");
     assertThat(item.getNamespace(), new CustomTypeSafeMatcher<String>(
@@ -409,7 +409,7 @@ public class DisplayDataTest {
               }
             });
 
-    Collection<Item<?>> items = data.items();
+    Collection<Item> items = data.items();
     assertThat(
         items, hasItem(allOf(hasKey("string"), hasType(is(DisplayData.Type.STRING)))));
     assertThat(
@@ -444,34 +444,17 @@ public class DisplayDataTest {
     };
     DisplayData data = DisplayData.from(component);
 
-    Collection<Item<?>> items = data.items();
-    assertThat(items, hasItem(allOf(hasKey("string"), hasValueString(is("foobar")))));
-    assertThat(items, hasItem(allOf(hasKey("integer"), hasValueString(is("123")))));
-    assertThat(items, hasItem(allOf(hasKey("float"), hasValueString(is("3.14")))));
-    assertThat(items, hasItem(hasKey("java_class")));
-    Item<?> javaClassItem =
-        data.asMap().get(DisplayData.Identifier.of(component.getClass(), "java_class"));
-    JsonNode javaClassJson = readJson(javaClassItem.getValueString());
-    assertEquals("DisplayDataTest", javaClassJson.get("simpleName").textValue());
-    assertEquals(
-        "com.google.cloud.dataflow.sdk.transforms.display.DisplayDataTest",
-        javaClassJson.get("name").textValue());
-
-    assertThat(
-        items,
-        hasItem(
-            allOf(
-                hasKey("timestamp"), hasValueString(is(Long.toString(now.getMillis()))))));
-    assertThat(
-        items,
-        hasItem(
-            allOf(
-                hasKey("duration"), hasValueString(is(Long.toString(oneHour.getMillis()))))));
-  }
-
-  private JsonNode readJson(String json) throws IOException {
-    ObjectMapper mapper = new ObjectMapper();
-    return mapper.readTree(json);
+    Collection<Item> items = data.items();
+    assertThat(items, hasItem(allOf(hasKey("string"), hasValue(is("foobar")))));
+    assertThat(items, hasItem(allOf(hasKey("integer"), hasValue(is("123")))));
+    assertThat(items, hasItem(allOf(hasKey("float"), hasValue(is("3.14")))));
+    assertThat(items, hasItem(allOf(hasKey("java_class"),
+            hasValue(is(DisplayDataTest.class.getName())),
+            hasShortValue(is(DisplayDataTest.class.getSimpleName())))));
+    assertThat(items, hasItem(allOf(hasKey("timestamp"),
+            hasValue(is(ISO_FORMATTER.print(now))))));
+    assertThat(items, hasItem(allOf(hasKey("duration"),
+            hasValue(is(Long.toString(oneHour.getMillis()))))));
   }
 
   @Test
@@ -584,11 +567,11 @@ public class DisplayDataTest {
     // Should not throw
   }
 
-  private static Matcher<DisplayData.Item<?>> hasNamespace(Matcher<Class<?>> nsMatcher) {
-    return new FeatureMatcher<DisplayData.Item<?>, Class<?>>(
+  private static Matcher<DisplayData.Item> hasNamespace(Matcher<Class<?>> nsMatcher) {
+    return new FeatureMatcher<DisplayData.Item, Class<?>>(
         nsMatcher, "display item with namespace", "namespace") {
       @Override
-      protected Class<?> featureValueOf(DisplayData.Item<?> actual) {
+      protected Class<?> featureValueOf(DisplayData.Item actual) {
         try {
           return Class.forName(actual.getNamespace());
         } catch (ClassNotFoundException e) {
@@ -598,52 +581,52 @@ public class DisplayDataTest {
     };
   }
 
-  private static Matcher<DisplayData.Item<?>> hasType(Matcher<DisplayData.Type> typeMatcher) {
-    return new FeatureMatcher<DisplayData.Item<?>, DisplayData.Type>(
+  private static Matcher<DisplayData.Item> hasType(Matcher<DisplayData.Type> typeMatcher) {
+    return new FeatureMatcher<DisplayData.Item, DisplayData.Type>(
         typeMatcher, "display item with type", "type") {
       @Override
-      protected DisplayData.Type featureValueOf(DisplayData.Item<?> actual) {
+      protected DisplayData.Type featureValueOf(DisplayData.Item actual) {
         return actual.getType();
       }
     };
   }
 
-  private static Matcher<DisplayData.Item<?>> hasLabel(Matcher<String> labelMatcher) {
-    return new FeatureMatcher<DisplayData.Item<?>, String>(
+  private static Matcher<DisplayData.Item> hasLabel(Matcher<String> labelMatcher) {
+    return new FeatureMatcher<DisplayData.Item, String>(
         labelMatcher, "display item with label", "label") {
       @Override
-      protected String featureValueOf(DisplayData.Item<?> actual) {
+      protected String featureValueOf(DisplayData.Item actual) {
         return actual.getLabel();
       }
     };
   }
 
-  private static Matcher<DisplayData.Item<?>> hasUrl(Matcher<String> urlMatcher) {
-    return new FeatureMatcher<DisplayData.Item<?>, String>(
+  private static Matcher<DisplayData.Item> hasUrl(Matcher<String> urlMatcher) {
+    return new FeatureMatcher<DisplayData.Item, String>(
         urlMatcher, "display item with url", "URL") {
       @Override
-      protected String featureValueOf(DisplayData.Item<?> actual) {
+      protected String featureValueOf(DisplayData.Item actual) {
         return actual.getUrl();
       }
     };
   }
 
-  private static <T> Matcher<DisplayData.Item<T>> hasValue(Matcher<T> valueMatcher) {
-    return new FeatureMatcher<DisplayData.Item<T>, T>(
+  private static Matcher<DisplayData.Item> hasValue(Matcher<String> valueMatcher) {
+    return new FeatureMatcher<DisplayData.Item, String>(
         valueMatcher, "display item with value", "value") {
       @Override
-      protected T featureValueOf(DisplayData.Item<T> actual) {
+      protected String featureValueOf(DisplayData.Item actual) {
         return actual.getValue();
       }
     };
   }
 
-  private static Matcher<DisplayData.Item<?>> hasValueString(Matcher<String> valueStringMatcher) {
-    return new FeatureMatcher<DisplayData.Item<?>, String>(
-        valueStringMatcher, "display item with value string", "value string") {
+  private static Matcher<DisplayData.Item> hasShortValue(Matcher<String> valueStringMatcher) {
+    return new FeatureMatcher<DisplayData.Item, String>(
+        valueStringMatcher, "display item with short value", "short value") {
       @Override
-      protected String featureValueOf(DisplayData.Item<?> actual) {
-        return actual.getValueString();
+      protected String featureValueOf(DisplayData.Item actual) {
+        return actual.getShortValue();
       }
     };
   }

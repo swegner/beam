@@ -22,16 +22,15 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import com.google.cloud.dataflow.sdk.transforms.DoFn;
 import com.google.cloud.dataflow.sdk.transforms.PTransform;
 import com.google.cloud.dataflow.sdk.transforms.ParDo;
-import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.joda.time.Duration;
 import org.joda.time.Instant;
+import org.joda.time.format.DateTimeFormatter;
+import org.joda.time.format.ISODateTimeFormat;
 
-import java.io.IOException;
 import java.util.Collection;
 import java.util.Map;
 import java.util.Objects;
@@ -46,10 +45,12 @@ import java.util.Set;
  * interface.
  */
 public class DisplayData {
-  private static final DisplayData EMPTY = new DisplayData(Maps.<Identifier, Item<?>>newHashMap());
-  private final ImmutableMap<Identifier, Item<?>> entries;
+  private static final DisplayData EMPTY = new DisplayData(Maps.<Identifier, Item>newHashMap());
+  private static final DateTimeFormatter TIMESTAMP_FORMATTER = ISODateTimeFormat.dateTime();
 
-  private DisplayData(Map<Identifier, Item<?>> entries) {
+  private final ImmutableMap<Identifier, Item> entries;
+
+  private DisplayData(Map<Identifier, Item> entries) {
     this.entries = ImmutableMap.copyOf(entries);
   }
 
@@ -69,11 +70,11 @@ public class DisplayData {
     return InternalBuilder.forRoot(component).build();
   }
 
-  public Collection<Item<?>> items() {
+  public Collection<Item> items() {
     return entries.values();
   }
 
-  public Map<Identifier, Item<?>> asMap() {
+  public Map<Identifier, Item> asMap() {
     return entries;
   }
 
@@ -81,7 +82,7 @@ public class DisplayData {
   public String toString() {
     StringBuilder builder = new StringBuilder();
     boolean isFirstLine = true;
-    for (Map.Entry<Identifier, Item<?>> entry : entries.entrySet()) {
+    for (Map.Entry<Identifier, Item> entry : entries.entrySet()) {
       if (isFirstLine) {
         isFirstLine = false;
       } else {
@@ -175,23 +176,34 @@ public class DisplayData {
    * identified by the specified key and namespace generated from the registering component's
    * class name.
    */
-  public static class Item<T> {
+  public static class Item {
     private final String key;
     private final String ns;
     private final Type type;
-    private final T value;
+    private final String value;
+    private final String shortValue;
     private final String label;
     private final String url;
 
-    private static <T> Item<T> create(String namespace, String key, Type type, T value) {
-      return new Item<>(namespace, key, type, value, null, null);
+    private static <T> Item create(String namespace, String key, Type type, T value) {
+      FormattedItemValue formatted = type.format(value);
+      return new Item(
+        namespace, key, type, formatted.getLongValue(), formatted.getShortValue(), null, null);
     }
 
-    private Item(String namespace, String key, Type type, T value, String url, String label) {
+    private Item(
+        String namespace,
+        String key,
+        Type type,
+        String value,
+        String shortValue,
+        String url,
+        String label) {
       this.ns = namespace;
       this.key = key;
       this.type = type;
       this.value = value;
+      this.shortValue = shortValue;
       this.url = url;
       this.label = label;
     }
@@ -214,8 +226,16 @@ public class DisplayData {
     /**
      * Retrieve the value of the metadata item.
      */
-    public T getValue() {
+    public String getValue() {
       return value;
+    }
+
+    /**
+     * Return the optional short value for an item. Types may provide a short-value to displayed
+     * instead of or in addition to the full {@link Item#value}.
+     */
+    public String getShortValue() {
+      return shortValue;
     }
 
     /**
@@ -238,24 +258,17 @@ public class DisplayData {
       return url;
     }
 
-    /**
-     * Retrieve a serialized version of the display item value suitable for use as JSON.
-     */
-    public String getValueString() {
-      return type.serializeJsonString(value);
-    }
-
     @Override
     public String toString() {
-      return getValueString();
+      return getValue();
     }
 
-    private Item<T> withLabel(String label) {
-      return new Item<>(this.ns, this.key, this.type, this.value, this.url, label);
+    private Item withLabel(String label) {
+      return new Item(this.ns, this.key, this.type, this.value, this.shortValue, this.url, label);
     }
 
-    private Item<T> withUrl(String url) {
-      return new Item<>(this.ns, this.key, this.type, this.value, url, this.label);
+    private Item withUrl(String url) {
+      return new Item(this.ns, this.key, this.type, this.value, this.shortValue, url, this.label);
     }
   }
 
@@ -318,73 +331,79 @@ public class DisplayData {
   enum Type {
     STRING {
       @Override
-      String serializeJsonString(Object value) {
-        return (String) value;
+      FormattedItemValue format(Object value) {
+        return new FormattedItemValue((String) value);
       }
     },
     INTEGER {
       @Override
-      String serializeJsonString(Object value) {
-        return Long.toString((long) value);
+      FormattedItemValue format(Object value) {
+        return new FormattedItemValue(Long.toString((long) value));
       }
     },
     FLOAT {
       @Override
-      String serializeJsonString(Object value) {
-        return Double.toString((Double) value);
+      FormattedItemValue format(Object value) {
+        return new FormattedItemValue(Double.toString((Double) value));
       }
     },
     TIMESTAMP() {
       @Override
-      String serializeJsonString(Object value) {
-        return Long.toString(((Instant) value).getMillis());
+      FormattedItemValue format(Object value) {
+        return new FormattedItemValue((TIMESTAMP_FORMATTER.print((Instant) value)));
       }
     },
     DURATION {
       @Override
-      String serializeJsonString(Object value) {
-        return Long.toString(((Duration) value).getMillis());
+      FormattedItemValue format(Object value) {
+        return new FormattedItemValue(Long.toString(((Duration) value).getMillis()));
       }
     },
     JAVA_CLASS {
       @Override
-      String serializeJsonString(Object value) {
+      FormattedItemValue format(Object value) {
         Class<?> clazz = (Class<?>) value;
-        Map<String, String> jsonMap = Maps.newHashMap();
-        jsonMap.put("name", clazz.getName());
-        jsonMap.put("simpleName", clazz.getSimpleName());
-        return toJson(jsonMap);
+        return new FormattedItemValue(clazz.getName(), clazz.getSimpleName());
       }
     };
 
     /**
-     * Serialize the display metadata value into a String which can be submitted as JSON
-     * to a UI or diagnostic dashboard.
+     * Format the display metadata value into a long string representation, and optionally
+     * a shorter representation for display.
      *
      * <p>Internal-only. Value objects can be safely cast to the expected Java type.
      */
-    abstract String serializeJsonString(Object value);
+    abstract FormattedItemValue format(Object value);
+  }
 
-    private static final ObjectMapper JSON_MAPPER = new ObjectMapper();
+  private static class FormattedItemValue {
+    private final String shortValue;
+    private final String longValue;
 
-    /**
-     * Serialize the given object as JSON.
-     */
-    private static String toJson(Object obj) {
-      try {
-        return JSON_MAPPER.writeValueAsString(obj);
-      } catch (IOException ex) {
-        throw Throwables.propagate(ex);
-      }
+    private FormattedItemValue(String longValue) {
+      this(longValue, null);
+    }
+
+    private FormattedItemValue(String longValue, String shortValue) {
+      this.longValue = longValue;
+      this.shortValue = shortValue;
+    }
+
+    private String getLongValue () {
+      return this.longValue;
+    }
+
+    private String getShortValue() {
+      return this.shortValue;
     }
   }
 
   private static class InternalBuilder implements ItemBuilder {
-    private final Map<Identifier, Item<?>> entries;
+    private final Map<Identifier, Item> entries;
     private final Set<Object> visited;
 
     private Class<?> latestNs;
-    private Item<?> latestItem;
+    private Item latestItem;
     private Identifier latestIdentifier;
 
     private InternalBuilder() {
@@ -455,7 +474,7 @@ public class DisplayData {
         throw new IllegalArgumentException("DisplayData key already exists. All display data "
           + "for a component must be registered with a unique key.\nKey: " + id);
       }
-      Item<T> item = Item.create(id.getNamespace(), key, type, value);
+      Item item = Item.create(id.getNamespace(), key, type, value);
       entries.put(id, item);
 
       latestItem = item;
@@ -466,7 +485,7 @@ public class DisplayData {
 
     @Override
     public ItemBuilder withLabel(String label) {
-      Item<?> newItem = latestItem.withLabel(label);
+      Item newItem = latestItem.withLabel(label);
       entries.put(latestIdentifier, newItem);
 
       latestItem = newItem;
@@ -475,7 +494,7 @@ public class DisplayData {
 
     @Override
     public ItemBuilder withLinkUrl(String url) {
-      Item<?> newItem = latestItem.withUrl(url);
+      Item newItem = latestItem.withUrl(url);
       entries.put(latestIdentifier, newItem);
 
       latestItem = newItem;
