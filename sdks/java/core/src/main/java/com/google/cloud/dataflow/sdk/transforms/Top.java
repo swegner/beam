@@ -25,6 +25,7 @@ import com.google.cloud.dataflow.sdk.coders.ListCoder;
 import com.google.cloud.dataflow.sdk.transforms.Combine.AccumulatingCombineFn;
 import com.google.cloud.dataflow.sdk.transforms.Combine.AccumulatingCombineFn.Accumulator;
 import com.google.cloud.dataflow.sdk.transforms.Combine.PerKey;
+import com.google.cloud.dataflow.sdk.transforms.display.DisplayData;
 import com.google.cloud.dataflow.sdk.transforms.windowing.GlobalWindow;
 import com.google.cloud.dataflow.sdk.transforms.windowing.GlobalWindows;
 import com.google.cloud.dataflow.sdk.util.common.ElementByteSizeObserver;
@@ -389,6 +390,13 @@ new TopCombineFn<>(count, new Largest<V>()).<K>asKeyedFn())
     public Coder<BoundedHeap<T, ComparatorT>> getAccumulatorCoder(
         CoderRegistry registry, Coder<T> inputCoder) {
       return new BoundedHeapCoder<>(count, compareFn, inputCoder);
+    }
+
+    @Override
+    public void populateDisplayData(DisplayData.Builder builder) {
+      builder
+          .add("count", count)
+          .add("comparer", compareFn.getClass());
     }
 
     @Override
