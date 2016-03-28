@@ -40,6 +40,7 @@ import com.google.cloud.dataflow.sdk.transforms.Create;
 import com.google.cloud.dataflow.sdk.transforms.DoFn;
 import com.google.cloud.dataflow.sdk.transforms.PTransform;
 import com.google.cloud.dataflow.sdk.transforms.ParDo;
+import com.google.cloud.dataflow.sdk.transforms.display.DisplayData;
 import com.google.cloud.dataflow.sdk.transforms.windowing.AfterWatermark;
 import com.google.cloud.dataflow.sdk.util.CoderUtils;
 import com.google.cloud.dataflow.sdk.util.Transport;
@@ -684,6 +685,33 @@ public class PubsubIO {
       }
 
       @Override
+      public void populateDisplayData(DisplayData.Builder builder) {
+        if (topic != null) {
+          builder.add("topic", topic.asPath());
+        }
+
+        if (subscription != null) {
+          builder.add("subscription", subscription.asPath());
+        }
+
+        if (timestampLabel != null) {
+          builder.add("timestampLabel", timestampLabel);
+        }
+
+        if (idLabel != null) {
+          builder.add("idLabel", idLabel);
+        }
+
+        if (maxNumRecords != 0) {
+          builder.add("maxRecords", maxNumRecords);
+        }
+
+        if (maxReadTime != null) {
+          builder.add("maxReadTime", maxReadTime);
+        }
+      }
+
+      @Override
       protected Coder<T> getDefaultOutputCoder() {
         return coder;
       }
@@ -966,6 +994,21 @@ public class PubsubIO {
         }
         input.apply(ParDo.of(new PubsubWriter()));
         return PDone.in(input.getPipeline());
+      }
+
+      @Override
+      public void populateDisplayData(DisplayData.Builder builder) {
+        if (topic != null) {
+          builder.add("topic", topic.asPath());
+        }
+
+        if (timestampLabel != null) {
+          builder.add("timestampLabel", timestampLabel);
+        }
+
+        if (idLabel != null) {
+          builder.add("idLabel", idLabel);
+        }
       }
 
       @Override

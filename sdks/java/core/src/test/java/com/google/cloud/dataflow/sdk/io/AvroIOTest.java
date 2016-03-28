@@ -16,6 +16,7 @@
 
 package com.google.cloud.dataflow.sdk.io;
 
+import static com.google.cloud.dataflow.sdk.transforms.display.DisplayDataMatchers.hasDisplayItem;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -28,6 +29,7 @@ import com.google.cloud.dataflow.sdk.runners.DirectPipeline;
 import com.google.cloud.dataflow.sdk.testing.DataflowAssert;
 import com.google.cloud.dataflow.sdk.testing.TestPipeline;
 import com.google.cloud.dataflow.sdk.transforms.Create;
+import com.google.cloud.dataflow.sdk.transforms.display.DisplayData;
 import com.google.cloud.dataflow.sdk.util.IOChannelUtils;
 import com.google.cloud.dataflow.sdk.values.PCollection;
 import com.google.common.base.MoreObjects;
@@ -219,6 +221,35 @@ public class AvroIOTest {
       Iterators.addAll(actualElements, reader);
       assertThat(actualElements, containsInAnyOrder(expectedElements));
     }
+  }
+
+  @Test
+  public void testReadDisplayData() {
+    AvroIO.Read.Bound<?> read = AvroIO.Read
+        .from("foo.*")
+        .withSchema(GenericClass.class);
+
+    DisplayData displayData = DisplayData.from(read);
+
+    assertThat(displayData, hasDisplayItem("filePattern", "foo.*"));
+    assertThat(displayData, hasDisplayItem("schema", GenericClass.class));
+  }
+
+  @Test
+  public void testWriteDisplayData() {
+    AvroIO.Write.Bound<?> write = AvroIO.Write
+        .to("foo")
+        .withSuffix("bar")
+        .withSchema(GenericClass.class)
+        .withNumShards(100);
+
+
+    DisplayData displayData = DisplayData.from(write);
+
+    assertThat(displayData, hasDisplayItem("fileNamePrefix", "foo"));
+    assertThat(displayData, hasDisplayItem("fileNameSuffix", "bar"));
+    assertThat(displayData, hasDisplayItem("schema", GenericClass.class));
+    assertThat(displayData, hasDisplayItem("numShards", 100));
   }
 
   // TODO: for Write only, test withSuffix, withNumShards,

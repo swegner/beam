@@ -23,6 +23,8 @@ import com.google.cloud.dataflow.sdk.coders.CoderRegistry;
 import com.google.cloud.dataflow.sdk.coders.KvCoder;
 import com.google.cloud.dataflow.sdk.coders.SerializableCoder;
 import com.google.cloud.dataflow.sdk.transforms.Combine.CombineFn;
+import com.google.cloud.dataflow.sdk.transforms.display.DisplayData;
+import com.google.cloud.dataflow.sdk.transforms.display.HasDisplayData;
 import com.google.cloud.dataflow.sdk.values.KV;
 import com.google.cloud.dataflow.sdk.values.PCollection;
 import com.google.common.hash.Hashing;
@@ -164,11 +166,12 @@ public class ApproximateUnique {
      * the more accurate the estimate will be.
      */
     private final long sampleSize;
+    private final HasDisplayData displayDataCallback;
 
     /**
      * @see ApproximateUnique#globally(int)
      */
-    public Globally(int sampleSize) {
+    public Globally(final int sampleSize) {
       if (sampleSize < 16) {
         throw new IllegalArgumentException(
             "ApproximateUnique needs a sampleSize "
@@ -177,6 +180,13 @@ public class ApproximateUnique {
             + "error is about 2 / sqrt(sampleSize).");
       }
       this.sampleSize = sampleSize;
+      this.displayDataCallback = new HasDisplayData() {
+
+        @Override
+        public void populateDisplayData(DisplayData.Builder builder) {
+          builder.add("sampleSize", sampleSize);
+        }
+      };
     }
 
     /**
@@ -189,6 +199,15 @@ public class ApproximateUnique {
             + "estimation error between 1% (0.01) and 50% (0.5).");
       }
       this.sampleSize = sampleSizeFromEstimationError(maximumEstimationError);
+
+      final double finalMaxEstError = maximumEstimationError;
+      this.displayDataCallback = new HasDisplayData() {
+
+        @Override
+        public void populateDisplayData(DisplayData.Builder builder) {
+          builder.add("maximumEstimationError", finalMaxEstError);
+        }
+      };
     }
 
     @Override
@@ -197,6 +216,11 @@ public class ApproximateUnique {
       return input.apply(
           Combine.globally(
               new ApproximateUniqueCombineFn<>(sampleSize, coder)));
+    }
+
+    @Override
+    public void populateDisplayData(DisplayData.Builder builder) {
+      displayDataCallback.populateDisplayData(builder);
     }
   }
 
@@ -212,6 +236,7 @@ public class ApproximateUnique {
       extends PTransform<PCollection<KV<K, V>>, PCollection<KV<K, Long>>> {
 
     private final long sampleSize;
+    private final HasDisplayData displayDataCallback;
 
     /**
      * @see ApproximateUnique#perKey(int)
@@ -224,6 +249,15 @@ public class ApproximateUnique {
             + "the estimation error is about 2 / sqrt(sampleSize).");
       }
       this.sampleSize = sampleSize;
+
+      final int finalSampleSize = sampleSize;
+      this.displayDataCallback = new HasDisplayData() {
+
+        @Override
+        public void populateDisplayData(DisplayData.Builder builder) {
+          builder.add("sampleSize", finalSampleSize);
+        }
+      };
     }
 
     /**
@@ -236,6 +270,15 @@ public class ApproximateUnique {
             + "estimation error between 1% (0.01) and 50% (0.5).");
       }
       this.sampleSize = sampleSizeFromEstimationError(estimationError);
+
+      final double finalMaxEstError = estimationError;
+      this.displayDataCallback = new HasDisplayData() {
+
+        @Override
+        public void populateDisplayData(DisplayData.Builder builder) {
+          builder.add("maximumEstimationError", finalMaxEstError);
+        }
+      };
     }
 
     @Override
@@ -251,6 +294,11 @@ public class ApproximateUnique {
       return input.apply(
           Combine.perKey(new ApproximateUniqueCombineFn<>(
               sampleSize, coder).<K>asKeyedFn()));
+    }
+
+    @Override
+    public void populateDisplayData(DisplayData.Builder builder) {
+      displayDataCallback.populateDisplayData(builder);
     }
   }
 

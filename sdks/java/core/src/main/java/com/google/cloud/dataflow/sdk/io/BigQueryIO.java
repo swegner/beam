@@ -43,6 +43,7 @@ import com.google.cloud.dataflow.sdk.transforms.PTransform;
 import com.google.cloud.dataflow.sdk.transforms.ParDo;
 import com.google.cloud.dataflow.sdk.transforms.SerializableFunction;
 import com.google.cloud.dataflow.sdk.transforms.Sum;
+import com.google.cloud.dataflow.sdk.transforms.display.DisplayData;
 import com.google.cloud.dataflow.sdk.transforms.windowing.BoundedWindow;
 import com.google.cloud.dataflow.sdk.util.BigQueryTableInserter;
 import com.google.cloud.dataflow.sdk.util.BigQueryTableRowIterator;
@@ -498,6 +499,21 @@ public class BigQueryIO {
       @Override
       protected Coder<TableRow> getDefaultOutputCoder() {
         return TableRowJsonCoder.of();
+      }
+
+      @Override
+      public void populateDisplayData(DisplayData.Builder builder) {
+        if (table != null) {
+          builder.add("tableSpec", toTableSpec(table));
+        }
+
+        if (query != null) {
+          builder.add("query", query);
+        }
+
+        if (flattenResults != null) {
+          builder.add("flattenResults", flattenResults);
+        }
       }
 
       static {
@@ -967,6 +983,21 @@ public class BigQueryIO {
       @Override
       protected Coder<Void> getDefaultOutputCoder() {
         return VoidCoder.of();
+      }
+
+      @Override
+      public void populateDisplayData(DisplayData.Builder builder) {
+        if (table != null) {
+          builder.add("tableSpec", toTableSpec(table));
+        }
+
+        if (schema != null) {
+          builder.add("schema", schema.toString());
+        }
+
+        builder
+            .add("createDisposition", createDisposition.toString())
+            .add("writeDisposition", writeDisposition.toString());
       }
 
       static {

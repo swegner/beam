@@ -19,6 +19,7 @@ package com.google.cloud.dataflow.sdk.io;
 import com.google.cloud.dataflow.sdk.annotations.Experimental;
 import com.google.cloud.dataflow.sdk.coders.Coder;
 import com.google.cloud.dataflow.sdk.options.PipelineOptions;
+import com.google.cloud.dataflow.sdk.transforms.display.DisplayData;
 import com.google.common.base.Preconditions;
 import com.google.common.io.ByteStreams;
 import com.google.common.primitives.Ints;
@@ -316,6 +317,13 @@ public class CompressedSource<T> extends FileBasedSource<T> {
   @Override
   public final boolean producesSortedKeys(PipelineOptions options) throws Exception {
     return sourceDelegate.producesSortedKeys(options);
+  }
+
+  @Override
+  public void populateDisplayData(DisplayData.Builder builder) {
+    builder
+        .include(sourceDelegate)
+        .add("compressionMode", channelFactory.toString());
   }
 
   /**

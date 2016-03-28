@@ -20,6 +20,7 @@ import com.google.cloud.dataflow.sdk.annotations.Experimental;
 import com.google.cloud.dataflow.sdk.coders.AvroCoder;
 import com.google.cloud.dataflow.sdk.options.PipelineOptions;
 import com.google.cloud.dataflow.sdk.runners.PipelineRunner;
+import com.google.cloud.dataflow.sdk.transforms.display.DisplayData;
 import com.google.cloud.dataflow.sdk.util.AvroUtils;
 import com.google.cloud.dataflow.sdk.util.AvroUtils.AvroMetadata;
 import com.google.cloud.dataflow.sdk.values.PCollection;
@@ -290,6 +291,20 @@ public class AvroSource<T> extends BlockBasedSource<T> {
       coder = AvroCoder.of(type, parser.parse(readSchemaString));
     }
     return coder;
+  }
+
+  @Override
+  public void populateDisplayData(DisplayData.Builder builder) {
+    builder.add("filePattern", getFileOrPatternSpec());
+
+    if (readSchemaString != null) {
+      builder.add("schema", readSchemaString);
+    }
+
+    long minBundleSize = getMinBundleSize();
+    if (minBundleSize != DEFAULT_MIN_BUNDLE_SIZE) {
+      builder.add("minBundleSize", minBundleSize);
+    }
   }
 
   public String getSchema() {

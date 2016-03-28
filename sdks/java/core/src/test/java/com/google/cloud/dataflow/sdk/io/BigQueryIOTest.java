@@ -16,8 +16,10 @@
 
 package com.google.cloud.dataflow.sdk.io;
 
+import static com.google.cloud.dataflow.sdk.transforms.display.DisplayDataMatchers.hasDisplayItem;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertThat;
 
 import com.google.api.client.util.Data;
 import com.google.api.services.bigquery.model.TableReference;
@@ -33,6 +35,7 @@ import com.google.cloud.dataflow.sdk.options.PipelineOptionsFactory;
 import com.google.cloud.dataflow.sdk.testing.RunnableOnService;
 import com.google.cloud.dataflow.sdk.testing.TestPipeline;
 import com.google.cloud.dataflow.sdk.transforms.Create;
+import com.google.cloud.dataflow.sdk.transforms.display.DisplayData;
 import com.google.cloud.dataflow.sdk.util.CoderUtils;
 
 import org.hamcrest.Matchers;
@@ -222,6 +225,22 @@ public class BigQueryIOTest {
   }
 
   @Test
+  public void testBuildSourceDisplayData() {
+    String tableSpec = "project:dataset.tableid";
+
+    BigQueryIO.Read.Bound read = BigQueryIO.Read
+        .from(tableSpec)
+        .fromQuery("myQuery")
+        .withoutResultFlattening();
+
+    DisplayData displayData = DisplayData.from(read);
+
+    assertThat(displayData, hasDisplayItem("tableSpec", tableSpec));
+    assertThat(displayData, hasDisplayItem("query", "myQuery"));
+    assertThat(displayData, hasDisplayItem("flattenResults", false));
+  }
+
+  @Test
   public void testBuildSink() {
     BigQueryIO.Write.Bound bound = BigQueryIO.Write.named("WriteMyTable")
         .to("foo.com:project:somedataset.sometable");
@@ -331,6 +350,27 @@ public class BigQueryIOTest {
     checkWriteObject(
         bound, "foo.com:project", "somedataset", "sometable",
         null, CreateDisposition.CREATE_IF_NEEDED, WriteDisposition.WRITE_EMPTY);
+  }
+
+  @Test
+  public void testBuildSinkDisplayData() {
+    String tableSpec = "project:dataset.table";
+    TableSchema schema = new TableSchema().set("col1", "type1").set("col2", "type2");
+
+    BigQueryIO.Write.Bound write = BigQueryIO.Write
+        .to(tableSpec)
+        .withSchema(schema)
+        .withCreateDisposition(CreateDisposition.CREATE_IF_NEEDED)
+        .withWriteDisposition(WriteDisposition.WRITE_APPEND);
+
+    DisplayData displayData = DisplayData.from(write);
+
+    assertThat(displayData, hasDisplayItem("tableSpec", tableSpec));
+    assertThat(displayData, hasDisplayItem("schema", schema.toString()));
+    assertThat(displayData,
+        hasDisplayItem("createDisposition", CreateDisposition.CREATE_IF_NEEDED.toString()));
+    assertThat(displayData,
+        hasDisplayItem("writeDisposition", WriteDisposition.WRITE_APPEND.toString()));
   }
 
 
