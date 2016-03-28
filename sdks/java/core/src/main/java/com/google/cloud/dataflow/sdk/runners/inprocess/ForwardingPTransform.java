@@ -20,6 +20,7 @@ package com.google.cloud.dataflow.sdk.runners.inprocess;
 import com.google.cloud.dataflow.sdk.coders.CannotProvideCoderException;
 import com.google.cloud.dataflow.sdk.coders.Coder;
 import com.google.cloud.dataflow.sdk.transforms.PTransform;
+import com.google.cloud.dataflow.sdk.transforms.display.DisplayData;
 import com.google.cloud.dataflow.sdk.values.PInput;
 import com.google.cloud.dataflow.sdk.values.POutput;
 import com.google.cloud.dataflow.sdk.values.TypedPValue;
@@ -52,5 +53,10 @@ public abstract class ForwardingPTransform<InputT extends PInput, OutputT extend
   public <T> Coder<T> getDefaultOutputCoder(InputT input, @SuppressWarnings("unused")
       TypedPValue<T> output) throws CannotProvideCoderException {
     return delegate().getDefaultOutputCoder(input, output);
+  }
+
+  @Override
+  public void populateDisplayData(DisplayData.Builder builder) {
+    delegate().populateDisplayData(builder);
   }
 }
