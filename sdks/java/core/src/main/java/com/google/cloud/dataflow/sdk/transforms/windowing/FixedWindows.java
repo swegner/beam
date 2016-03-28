@@ -18,6 +18,7 @@ package com.google.cloud.dataflow.sdk.transforms.windowing;
 
 import com.google.cloud.dataflow.sdk.coders.Coder;
 
+import com.google.cloud.dataflow.sdk.transforms.display.DisplayData;
 import org.joda.time.Duration;
 import org.joda.time.Instant;
 
@@ -79,6 +80,15 @@ public class FixedWindows extends PartitioningWindowFn<Object, IntervalWindow> {
     long start = timestamp.getMillis()
         - timestamp.plus(size).minus(offset).getMillis() % size.getMillis();
     return new IntervalWindow(new Instant(start), size);
+  }
+
+  @Override
+  public void populateDisplayData(DisplayData.Builder builder) {
+    builder.add("size", size);
+
+    if (offset != Duration.ZERO) {
+      builder.add("offset", offset);
+    }
   }
 
   @Override

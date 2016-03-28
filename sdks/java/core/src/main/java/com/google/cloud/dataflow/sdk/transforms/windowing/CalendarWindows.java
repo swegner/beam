@@ -18,6 +18,7 @@ package com.google.cloud.dataflow.sdk.transforms.windowing;
 
 import com.google.cloud.dataflow.sdk.coders.Coder;
 
+import com.google.cloud.dataflow.sdk.transforms.display.DisplayData;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
 import org.joda.time.Days;
@@ -141,6 +142,13 @@ public class CalendarWindows {
           && timeZone == that.timeZone;
     }
 
+    @Override
+    public void populateDisplayData(DisplayData.Builder builder) {
+      builder
+          .add("numDays", number)
+          .add("startDate", new DateTime(startDate, timeZone).toInstant());
+    }
+
     public int getNumber() {
       return number;
     }
@@ -226,6 +234,13 @@ public class CalendarWindows {
           && dayOfMonth == that.dayOfMonth
           && startDate == that.startDate
           && timeZone == that.timeZone;
+    }
+
+    @Override
+    public void populateDisplayData(DisplayData.Builder builder) {
+      builder
+          .add("numMonths", number)
+          .add("startDate", new DateTime(startDate, timeZone).toInstant());
     }
 
     public int getNumber() {
@@ -322,6 +337,13 @@ public class CalendarWindows {
           && dayOfMonth == that.dayOfMonth
           && startDate == that.startDate
           && timeZone == that.timeZone;
+    }
+
+    @Override
+    public void populateDisplayData(DisplayData.Builder builder) {
+      builder
+          .add("numYears", number)
+          .add("startDate", new DateTime(startDate, timeZone).toInstant());
     }
 
     public DateTimeZone getTimeZone() {

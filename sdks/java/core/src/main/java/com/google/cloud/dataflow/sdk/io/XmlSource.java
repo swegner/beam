@@ -18,6 +18,7 @@ import com.google.cloud.dataflow.sdk.coders.Coder;
 import com.google.cloud.dataflow.sdk.coders.JAXBCoder;
 import com.google.cloud.dataflow.sdk.options.PipelineOptions;
 import com.google.cloud.dataflow.sdk.runners.PipelineRunner;
+import com.google.cloud.dataflow.sdk.transforms.display.DisplayData;
 import com.google.common.base.Preconditions;
 
 import org.codehaus.stax2.XMLInputFactory2;
@@ -212,6 +213,28 @@ public class XmlSource<T> extends FileBasedSource<T> {
         "recordElement is null. Use builder method withRecordElement() to set this.");
     Preconditions.checkNotNull(
         recordClass, "recordClass is null. Use builder method withRecordClass() to set this.");
+  }
+
+  @Override
+  public void populateDisplayData(DisplayData.Builder builder) {
+    builder.add("filePattern", getFileOrPatternSpec());
+
+    if (rootElement != null) {
+      builder.add("rootElement", rootElement);
+    }
+
+    if (recordElement != null) {
+      builder.add("recordElement", recordElement);
+    }
+
+    if (recordClass != null) {
+      builder.add("recordClass", recordClass);
+    }
+
+    long minBundleSize = getMinBundleSize();
+    if (minBundleSize != DEFAULT_MIN_BUNDLE_SIZE) {
+      builder.add("minBundleSize", minBundleSize);
+    }
   }
 
   @Override

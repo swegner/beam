@@ -29,6 +29,8 @@ import com.google.cloud.dataflow.sdk.transforms.CombineFnBase.PerKeyCombineFn;
 import com.google.cloud.dataflow.sdk.transforms.CombineWithContext.CombineFnWithContext;
 import com.google.cloud.dataflow.sdk.transforms.CombineWithContext.Context;
 import com.google.cloud.dataflow.sdk.transforms.CombineWithContext.KeyedCombineFnWithContext;
+import com.google.cloud.dataflow.sdk.transforms.display.DisplayData;
+import com.google.cloud.dataflow.sdk.transforms.display.HasDisplayData;
 import com.google.cloud.dataflow.sdk.util.PropertyNames;
 import com.google.cloud.dataflow.sdk.values.TupleTag;
 import com.google.common.collect.ImmutableList;
@@ -451,6 +453,13 @@ public class CombineFns {
       }
       return new ComposedAccumulatorCoder(coders);
     }
+
+    @Override
+    public void populateDisplayData(DisplayData.Builder builder) {
+      for (CombineFn combineFn : combineFns) {
+        builder.include(combineFn);
+      }
+    }
   }
 
   /**
@@ -583,6 +592,13 @@ public class CombineFns {
         coders.add(combineFnWithContexts.get(i).getAccumulatorCoder(registry, inputCoder));
       }
       return new ComposedAccumulatorCoder(coders);
+    }
+
+    @Override
+    public void populateDisplayData(DisplayData.Builder builder) {
+      for (CombineFnWithContext combineFn : combineFnWithContexts) {
+        builder.include(combineFn);
+      }
     }
   }
 
@@ -765,6 +781,13 @@ public class CombineFns {
       }
       return new ComposedAccumulatorCoder(coders);
     }
+
+    @Override
+    public void populateDisplayData(DisplayData.Builder builder) {
+      for (HasDisplayData keyedCombineFn : keyedCombineFns) {
+        builder.include(keyedCombineFn);
+      }
+    }
   }
 
   /**
@@ -911,6 +934,13 @@ public class CombineFns {
       }
       return new ComposedAccumulatorCoder(coders);
     }
+
+    @Override
+    public void populateDisplayData(DisplayData.Builder builder) {
+      for (HasDisplayData keyedCombineFn : keyedCombineFns) {
+        builder.include(keyedCombineFn);
+      }
+    }
   }
 
   /////////////////////////////////////////////////////////////////////////////
@@ -1040,6 +1070,10 @@ public class CombineFns {
             CoderRegistry registry, Coder<InputT> inputCoder) throws CannotProvideCoderException {
           return combineFn.getDefaultOutputCoder(registry, inputCoder);
         }
+        @Override
+        public void populateDisplayData(DisplayData.Builder builder) {
+          combineFn.populateDisplayData(builder);
+        }
       };
     }
   }
@@ -1085,6 +1119,10 @@ public class CombineFns {
         public Coder<OutputT> getDefaultOutputCoder(CoderRegistry registry, Coder<K> keyCoder,
             Coder<InputT> inputCoder) throws CannotProvideCoderException {
           return keyedCombineFn.getDefaultOutputCoder(registry, keyCoder, inputCoder);
+        }
+        @Override
+        public void populateDisplayData(DisplayData.Builder builder) {
+          keyedCombineFn.populateDisplayData(builder);
         }
       };
     }

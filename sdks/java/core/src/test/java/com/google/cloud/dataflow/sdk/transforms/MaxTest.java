@@ -17,8 +17,11 @@
 package com.google.cloud.dataflow.sdk.transforms;
 
 import static com.google.cloud.dataflow.sdk.TestUtils.checkCombineFn;
+import static com.google.cloud.dataflow.sdk.transforms.display.DisplayDataMatchers.hasDisplayItem;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThat;
 
+import com.google.cloud.dataflow.sdk.transforms.display.DisplayData;
 import com.google.common.collect.Lists;
 
 import org.junit.Test;
@@ -62,5 +65,13 @@ public class MaxTest {
         new Max.MaxDoubleFn(),
         Lists.newArrayList(1.0, 2.0, 3.0, 4.0),
         4.0);
+  }
+
+  @Test
+  public void testDisplayData() {
+    Top.Largest<Integer> comparer = new Top.Largest<>();
+
+    Combine.Globally<Integer, Integer> max = Max.globally(comparer);
+    assertThat(DisplayData.from(max), hasDisplayItem("comparer", comparer.getClass()));
   }
 }
