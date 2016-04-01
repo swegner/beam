@@ -19,6 +19,7 @@ package com.google.cloud.dataflow.sdk.transforms.display;
 
 import static com.google.cloud.dataflow.sdk.transforms.display.DisplayDataMatchers.hasDisplayItem;
 import static com.google.cloud.dataflow.sdk.transforms.display.DisplayDataMatchers.hasKey;
+import static com.google.cloud.dataflow.sdk.transforms.display.DisplayDataMatchers.hasNamespace;
 import static com.google.cloud.dataflow.sdk.transforms.display.DisplayDataMatchers.hasType;
 import static com.google.cloud.dataflow.sdk.transforms.display.DisplayDataMatchers.hasValue;
 import static com.google.cloud.dataflow.sdk.transforms.display.DisplayDataMatchers.includes;
@@ -616,20 +617,6 @@ public class DisplayDataTest {
       });
 
     // Should not throw
-  }
-
-  private static Matcher<DisplayData.Item> hasNamespace(Matcher<Class<?>> nsMatcher) {
-    return new FeatureMatcher<DisplayData.Item, Class<?>>(
-        nsMatcher, "display item with namespace", "namespace") {
-      @Override
-      protected Class<?> featureValueOf(DisplayData.Item actual) {
-        try {
-          return Class.forName(actual.getNamespace());
-        } catch (ClassNotFoundException e) {
-          return null;
-        }
-      }
-    };
   }
 
   private static Matcher<DisplayData.Item> hasLabel(Matcher<String> labelMatcher) {
