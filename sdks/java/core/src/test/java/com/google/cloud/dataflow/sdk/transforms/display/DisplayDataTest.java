@@ -159,33 +159,28 @@ public class DisplayDataTest {
   @Test
   public void testItemProperties() {
     final Instant value = Instant.now();
-    DisplayData data = DisplayData.from(new ConcreteComponent(value));
+    DisplayData data = DisplayData.from(new HasDisplayData() {
+      @Override
+      public void populateDisplayData(DisplayData.Builder builder) {
+        builder.add("now", value)
+            .withLabel("the current instant")
+            .withLinkUrl("http://time.gov")
+            .withNamespace(DisplayDataTest.class);
+      }
+    });
 
     @SuppressWarnings("unchecked")
     DisplayData.Item item = (DisplayData.Item) data.items().toArray()[0];
     assertThat(
         item,
         allOf(
-            hasNamespace(Matchers.<Class<?>>is(ConcreteComponent.class)),
+            hasNamespace(DisplayDataTest.class),
             hasKey("now"),
             hasType(DisplayData.Type.TIMESTAMP),
             hasValue(ISO_FORMATTER.print(value)),
             hasShortValue(nullValue(String.class)),
             hasLabel(is("the current instant")),
             hasUrl(is("http://time.gov"))));
-  }
-
-  static class ConcreteComponent implements HasDisplayData {
-    private Instant value;
-
-    ConcreteComponent(Instant value) {
-      this.value = value;
-    }
-
-    @Override
-    public void populateDisplayData(DisplayData.Builder builder) {
-      builder.add("now", value).withLabel("the current instant").withLinkUrl("http://time.gov");
-    }
   }
 
   @Test
@@ -348,6 +343,22 @@ public class DisplayDataTest {
               .add("foo", "baz");
           }
         });
+  }
+
+  @Test
+  public void testDuplicateKeyWithNamespaceOverrideDoesntThrow() {
+    DisplayData displayData = DisplayData.from(
+        new HasDisplayData() {
+          @Override
+          public void populateDisplayData(DisplayData.Builder builder) {
+            builder
+                .add("foo", "bar")
+                .add("foo", "baz")
+                  .withNamespace(DisplayDataTest.class);
+          }
+        });
+
+    assertThat(displayData.items(), hasSize(2));
   }
 
   @Test
@@ -535,7 +546,7 @@ public class DisplayDataTest {
         hasItem(
             allOf(
                 hasKey("alpha"),
-                hasNamespace(Matchers.<Class<?>>is(component.getClass())))));
+                hasNamespace(component.getClass()))));
   }
 
   @Test
@@ -611,8 +622,9 @@ public class DisplayDataTest {
         @Override
         public void populateDisplayData(Builder builder) {
           builder.add("key", "value")
-                  .withLabel(null)
-                  .withLinkUrl(null);
+              .withLabel(null)
+              .withLinkUrl(null)
+              .withNamespace(null);
         }
       });
 
