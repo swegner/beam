@@ -19,6 +19,8 @@ package com.google.cloud.dataflow.sdk.options;
 
 import com.google.cloud.dataflow.sdk.options.PipelineOptionsFactory.JsonIgnorePredicate;
 import com.google.cloud.dataflow.sdk.options.PipelineOptionsFactory.Registration;
+import com.google.cloud.dataflow.sdk.transforms.display.DisplayData;
+import com.google.cloud.dataflow.sdk.transforms.display.HasDisplayData;
 import com.google.cloud.dataflow.sdk.util.InstanceBuilder;
 import com.google.cloud.dataflow.sdk.util.common.ReflectHelpers;
 import com.google.common.base.Defaults;
@@ -26,8 +28,12 @@ import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ClassToInstanceMap;
 import com.google.common.collect.FluentIterable;
+import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Maps;
+import com.google.common.collect.Multimap;
+import com.google.common.collect.Multimaps;
 import com.google.common.collect.MutableClassToInstanceMap;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
@@ -42,6 +48,7 @@ import com.fasterxml.jackson.databind.JsonSerializer;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializerProvider;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.google.common.collect.Sets;
 
 import java.beans.PropertyDescriptor;
 import java.io.IOException;
@@ -118,6 +125,12 @@ class ProxyInvocationHandler implements InvocationHandler {
       @SuppressWarnings("unchecked")
       Class<? extends PipelineOptions> clazz = (Class<? extends PipelineOptions>) args[0];
       return cloneAs(proxy, clazz);
+    } else if (args != null && "populateDisplayData".equals(method.getName())
+        && args[0] instanceof DisplayData.Builder) {
+      @SuppressWarnings("unchecked")
+      DisplayData.Builder builder = (DisplayData.Builder)args[0];
+      populateDisplayData(builder);
+      return Void.TYPE;
     }
     String methodName = method.getName();
     synchronized (this) {
@@ -206,6 +219,12 @@ class ProxyInvocationHandler implements InvocationHandler {
   @Override
   public int hashCode() {
     return hashCode;
+  }
+
+  /**
+   * {@link HasDisplayData#populateDisplayData}
+   */
+  private void populateDisplayData(DisplayData.Builder builder) {
   }
 
   /**
