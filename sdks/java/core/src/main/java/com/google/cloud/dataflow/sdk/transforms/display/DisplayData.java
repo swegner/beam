@@ -554,7 +554,7 @@ public class DisplayData {
       this.shortValue = shortValue;
     }
 
-    String getLongValue () {
+    String getLongValue() {
       return this.longValue;
     }
 
