@@ -17,12 +17,21 @@
  */
 package com.google.cloud.dataflow.sdk.options;
 
+import static com.google.cloud.dataflow.sdk.transforms.display.DisplayDataMatchers.hasDisplayItem;
+import static com.google.cloud.dataflow.sdk.transforms.display.DisplayDataMatchers.hasKey;
+import static com.google.cloud.dataflow.sdk.transforms.display.DisplayDataMatchers.hasNamespace;
+import static com.google.cloud.dataflow.sdk.transforms.display.DisplayDataMatchers.hasType;
+import static com.google.cloud.dataflow.sdk.transforms.display.DisplayDataMatchers.hasValue;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.allOf;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
+import com.google.cloud.dataflow.sdk.transforms.display.DisplayData;
+import com.google.cloud.dataflow.sdk.transforms.display.DisplayDataMatchers;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -38,6 +47,7 @@ import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
+import sun.reflect.generics.reflectiveObjects.NotImplementedException;
 
 import java.util.List;
 import java.util.Map;
@@ -681,6 +691,66 @@ public class ProxyInvocationHandlerTest {
     SerializableWithMetadataProperty options2 =
         serializeDeserialize(SerializableWithMetadataProperty.class, options);
     assertEquals("TestString", options2.getValue().getValue());
+  }
+
+  @Test
+  public void testDisplayDataItemProperties() {
+    PipelineOptions options = PipelineOptionsFactory.create();
+    options.setTempLocation("myTemp");
+    DisplayData displayData = DisplayData.from(options);
+
+    assertThat(displayData, hasDisplayItem(allOf(
+        hasKey("TempLocation"),
+        hasType(DisplayData.Type.STRING),
+        hasValue("myTemp"),
+        // TODO: Description?
+        hasNamespace(PipelineOptions.class)
+    )));
+  }
+
+  @Test
+  public void testDisplayDataKnownTypes() {
+   throw new NotImplementedException();
+  }
+
+  @Test
+  public void testDisplaydataUnknownTypesUsesToString() {
+    throw new NotImplementedException();
+  }
+
+  @Test
+  public void testDisplayDataInheritenceNamespace() {
+    // Ensure namespace is set correctly
+    throw new NotImplementedException();
+  }
+
+  @Test
+  public void testDisplayDataExcludedFromOverridenBaseClass() {
+    throw new NotImplementedException();
+  }
+
+  @Test
+  public void testDisplayDataIncludedForDisjointInterfaceHierarchies() {
+    throw new NotImplementedException();
+  }
+
+  @Test
+  public void testDisplayDataExcludesDefaultValues() {
+    throw new NotImplementedException();
+  }
+
+  @Test
+  public void testDisplayDataIncludesExplicitlySetDefaults() {
+    throw new NotImplementedException();
+  }
+
+  @Test
+  public void testDisplayDataIncludesDeserializedJsonOptions() {
+    throw new NotImplementedException();
+  }
+
+  public void testDisplayDataThrowsWhenDeserializedSourceNotKnown() {
+    throw new NotImplementedException();
   }
 
   private <T extends PipelineOptions> T serializeDeserialize(Class<T> kls, PipelineOptions options)

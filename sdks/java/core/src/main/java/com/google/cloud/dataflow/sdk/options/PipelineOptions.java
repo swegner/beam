@@ -31,6 +31,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.google.cloud.dataflow.sdk.transforms.display.HasDisplayData;
 
 import java.lang.reflect.Proxy;
 import java.util.ServiceLoader;
@@ -193,7 +194,7 @@ import javax.annotation.concurrent.ThreadSafe;
 @JsonSerialize(using = Serializer.class)
 @JsonDeserialize(using = Deserializer.class)
 @ThreadSafe
-public interface PipelineOptions {
+public interface PipelineOptions extends HasDisplayData {
   /**
    * Transforms this object into an object of type {@code <T>} saving each property
    * that has been manipulated. {@code <T>} must extend {@link PipelineOptions}.

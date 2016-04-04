@@ -22,6 +22,7 @@ import static com.google.common.base.Preconditions.checkArgument;
 import com.google.cloud.dataflow.sdk.options.Validation.Required;
 import com.google.cloud.dataflow.sdk.runners.PipelineRunner;
 import com.google.cloud.dataflow.sdk.runners.PipelineRunnerRegistrar;
+import com.google.cloud.dataflow.sdk.transforms.display.DisplayData;
 import com.google.cloud.dataflow.sdk.util.StringUtils;
 import com.google.cloud.dataflow.sdk.util.common.ReflectHelpers;
 import com.google.common.base.Function;
@@ -1030,19 +1031,20 @@ public class PipelineOptionsFactory {
       Set<Class<? extends PipelineOptions>> validatedPipelineOptionsInterfaces,
       Class<?> klass) throws IntrospectionException {
     Set<Method> methods = Sets.newHashSet(IGNORED_METHODS);
-    // Ignore static methods, "equals", "hashCode", "toString" and "as" on the generated class.
     // Ignore synthetic methods
     for (Method method : klass.getMethods()) {
       if (Modifier.isStatic(method.getModifiers()) || method.isSynthetic()) {
         methods.add(method);
       }
     }
+    // Ignore standard infrastructure methods on the generated class.
     try {
       methods.add(klass.getMethod("equals", Object.class));
       methods.add(klass.getMethod("hashCode"));
       methods.add(klass.getMethod("toString"));
       methods.add(klass.getMethod("as", Class.class));
       methods.add(klass.getMethod("cloneAs", Class.class));
+      methods.add(klass.getMethod("populateDisplayData", DisplayData.Builder.class));
     } catch (NoSuchMethodException | SecurityException e) {
       throw Throwables.propagate(e);
     }
