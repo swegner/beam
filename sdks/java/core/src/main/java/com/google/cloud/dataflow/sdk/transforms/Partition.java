@@ -18,6 +18,7 @@
 package com.google.cloud.dataflow.sdk.transforms;
 
 import com.google.cloud.dataflow.sdk.coders.Coder;
+import com.google.cloud.dataflow.sdk.transforms.display.DisplayData;
 import com.google.cloud.dataflow.sdk.values.PCollection;
 import com.google.cloud.dataflow.sdk.values.PCollectionList;
 import com.google.cloud.dataflow.sdk.values.PCollectionTuple;
@@ -121,6 +122,11 @@ public class Partition<T> extends PTransform<PCollection<T>, PCollectionList<T>>
     return pcs;
   }
 
+  @Override
+  public void populateDisplayData(DisplayData.Builder builder) {
+    builder.include(partitionDoFn);
+  }
+
   private final transient PartitionDoFn<T> partitionDoFn;
 
   private Partition(PartitionDoFn<T> partitionDoFn) {
@@ -169,6 +175,13 @@ public class Partition<T> extends PTransform<PCollection<T>, PCollectionList<T>>
             "Partition function returned out of bounds index: " +
             partition + " not in [0.." + numPartitions + ")");
       }
+    }
+
+    @Override
+    public void populateDisplayData(DisplayData.Builder builder) {
+      builder
+          .add("numPartitions", numPartitions)
+          .add("partitionFn", partitionFn.getClass());
     }
   }
 }
