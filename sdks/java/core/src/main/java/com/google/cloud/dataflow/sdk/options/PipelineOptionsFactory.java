@@ -683,7 +683,7 @@ public class PipelineOptionsFactory {
     RowSortedTable<Class<?>, String, Method> ifacePropGetterTable = TreeBasedTable.create(
         ClassNameComparator.INSTANCE, Ordering.natural());
     for (PipelineOptionsReflector.Property prop : properties) {
-      ifacePropGetterTable.put(prop.definingClass(), prop.name(), prop.getterMethod());
+      ifacePropGetterTable.put(prop.definingInterface(), prop.name(), prop.getterMethod());
     }
 
     for (Class<?> currentIface : ifacePropGetterTable.rowKeySet()) {

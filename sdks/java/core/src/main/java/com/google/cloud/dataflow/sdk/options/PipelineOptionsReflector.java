@@ -17,7 +17,6 @@
  */
 package com.google.cloud.dataflow.sdk.options;
 
-import com.google.api.client.util.Maps;
 import com.google.cloud.dataflow.sdk.util.common.ReflectHelpers;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Objects;
@@ -73,8 +72,8 @@ class PipelineOptionsReflector {
   }
 
   /**
-   * Retrieve the full set of pipeline option properties visible within the type hierarchy closure
-   * for the set of input interfaces. An option is "visible" if:
+   * Retrieve the full set of pipeline option properties visible within the type hierarchy of the
+   * input interfaces. An option is "visible" if:
    *
    * <ul>
    *   <li>The option is defined within the interface hierarchy closure of the input
@@ -92,6 +91,9 @@ class PipelineOptionsReflector {
     return setBulder.build();
   }
 
+  /**
+   * Extra properties and their respective getter methods from a series of {@link Method methods}.
+   */
   static Multimap<String, Method> getPropertyNamesToGetters(Iterable<Method> methods) {
     Multimap<String, Method> propertyNamesToGetters = HashMultimap.create();
     for (Method method : methods) {
@@ -127,14 +129,24 @@ class PipelineOptionsReflector {
       this.getter = getter;
     }
 
-    Class<? extends PipelineOptions> definingClass() {
+    /**
+     * The {@link PipelineOptions} interface which defines this {@link Property}.
+     * @return
+     */
+    Class<? extends PipelineOptions> definingInterface() {
       return clazz;
     }
 
+    /**
+     * Name of the property.
+     */
     String name() {
       return name;
     }
 
+    /**
+     * The getter method for this property.
+     */
     Method getterMethod() {
       return getter;
     }
@@ -142,7 +154,7 @@ class PipelineOptionsReflector {
     @Override
     public String toString() {
       return MoreObjects.toStringHelper(this)
-          .add("definingClass", definingClass())
+          .add("definingInterface", definingInterface())
           .add("name", name())
           .add("getterMethod", getterMethod())
           .toString();
@@ -150,7 +162,7 @@ class PipelineOptionsReflector {
 
     @Override
     public int hashCode() {
-      return Objects.hashCode(definingClass(), name(), getterMethod());
+      return Objects.hashCode(definingInterface(), name(), getterMethod());
     }
 
     @Override
@@ -160,7 +172,7 @@ class PipelineOptionsReflector {
       }
 
       Property that = (Property) obj;
-      return Objects.equal(this.definingClass(), that.definingClass())
+      return Objects.equal(this.definingInterface(), that.definingInterface())
           && Objects.equal(this.name(), that.name())
           && Objects.equal(this.getterMethod(), that.getterMethod());
     }

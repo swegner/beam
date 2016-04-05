@@ -1,13 +1,9 @@
 package com.google.cloud.dataflow.sdk.options;
 
-import com.google.api.client.util.Lists;
-import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 import org.hamcrest.FeatureMatcher;
 import org.hamcrest.Matcher;
 import org.hamcrest.Matchers;
-import org.junit.Assert;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
@@ -16,8 +12,6 @@ import java.util.Set;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.allOf;
-import static org.hamcrest.Matchers.any;
-import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
@@ -164,7 +158,7 @@ public class PipelineOptionsReflectorTest {
         Matchers.<Class<?>>is(clazz), "defining class", "class") {
       @Override
       protected Class<?> featureValueOf(PipelineOptionsReflector.Property actual) {
-        return actual.definingClass();
+        return actual.definingInterface();
       }
     };
   }
