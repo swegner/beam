@@ -17,16 +17,18 @@
  */
 package com.google.cloud.dataflow.sdk.options;
 
-import com.google.cloud.dataflow.sdk.Pipeline;
+import com.google.api.client.util.Maps;
 import com.google.cloud.dataflow.sdk.util.common.ReflectHelpers;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Objects;
+import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Sets;
+import com.google.common.collect.Multimap;
 
 import java.beans.Introspector;
 import java.lang.reflect.Method;
 import java.util.Collection;
+import java.util.Map;
 import java.util.Set;
 
 /**
@@ -48,18 +50,13 @@ class PipelineOptionsReflector {
   static Set<Property> collectVisibleProperties(
       Class<? extends PipelineOptions> optionsInterface) {
     Iterable<Method> methods = ReflectHelpers.getClosureOfMethodsOnInterface(optionsInterface);
-    ImmutableSet.Builder<Property> setBulder = ImmutableSet.builder();
-    for (Method method : methods) {
-      String methodName = method.getName();
-      if ((!methodName.startsWith("get")
-          && !methodName.startsWith("is"))
-          || method.getParameterTypes().length != 0
-          || method.getReturnType() == void.class) {
-        continue;
-      }
-      String name = Introspector.decapitalize(
-          methodName.startsWith("is") ? methodName.substring(2) : methodName.substring(3));
-      Class<?> declaringClass = method.getDeclaringClass();
+    Multimap<String, Method> propsToGetters = getPropertyNamesToGetters(methods);
+
+    ImmutableSet.Builder<Property> setBuilder = ImmutableSet.builder();
+    for(Map.Entry<String, Method> propAndGetter : propsToGetters.entries()) {
+      String prop = propAndGetter.getKey();
+      Method getter = propAndGetter.getValue();
+      Class<?> declaringClass = getter.getDeclaringClass();
 
       if (!PipelineOptions.class.isAssignableFrom(declaringClass)) {
         continue;
@@ -69,10 +66,10 @@ class PipelineOptionsReflector {
         continue;
       }
 
-      setBulder.add(Property.of((Class<? extends PipelineOptions>)declaringClass, name, method));
+      setBuilder.add(Property.of((Class<? extends PipelineOptions>)declaringClass, prop, getter));
     }
 
-    return setBulder.build();
+    return setBuilder.build();
   }
 
   /**
@@ -93,6 +90,23 @@ class PipelineOptionsReflector {
     }
 
     return setBulder.build();
+  }
+
+  static Multimap<String, Method> getPropertyNamesToGetters(Iterable<Method> methods) {
+    Multimap<String, Method> propertyNamesToGetters = HashMultimap.create();
+    for (Method method : methods) {
+      String methodName = method.getName();
+      if ((!methodName.startsWith("get")
+          && !methodName.startsWith("is"))
+          || method.getParameterTypes().length != 0
+          || method.getReturnType() == void.class) {
+        continue;
+      }
+      String propertyName = Introspector.decapitalize(
+          methodName.startsWith("is") ? methodName.substring(2) : methodName.substring(3));
+      propertyNamesToGetters.put(propertyName, method);
+    }
+    return propertyNamesToGetters;
   }
 
   /**
