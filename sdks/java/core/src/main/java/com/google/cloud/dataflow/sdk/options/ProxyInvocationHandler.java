@@ -188,7 +188,7 @@ class ProxyInvocationHandler implements InvocationHandler {
     }
 
     boolean isDefault() {
-      return !isDefault;
+      return isDefault;
     }
   }
 
@@ -264,7 +264,7 @@ class ProxyInvocationHandler implements InvocationHandler {
    * {@link HasDisplayData#populateDisplayData}
    */
   private void populateDisplayData(DisplayData.Builder builder) {
-    Preconditions.checkState(jsonOptions.isEmpty(),
+    Preconditions.checkState(canPopulateDisplayData(),
         "Populating display data from deserialized PipelineOptions is not supported.");
     Set<PipelineOptionsReflector.Property> props =
         PipelineOptionsReflector.collectVisibleProperties(knownInterfaces);
@@ -282,6 +282,10 @@ class ProxyInvocationHandler implements InvocationHandler {
            .withNamespace(definingClass);
       }
     }
+  }
+
+  private boolean canPopulateDisplayData() {
+    return jsonOptions.isEmpty();
   }
 
   private Multimap<String, Class<?>> buildOptionToInterfaceMap(Set<PipelineOptionsReflector.Property> props) {
@@ -469,9 +473,21 @@ class ProxyInvocationHandler implements InvocationHandler {
         for (Map.Entry<String, BoundValue> entry : filteredOptions.entrySet()) {
           serializableOptions.put(entry.getKey(), entry.getValue().getValue());
         }
+
+
         jgen.writeStartObject();
         jgen.writeFieldName("options");
         jgen.writeObject(serializableOptions);
+
+        if (handler.canPopulateDisplayData()) {
+          List<Map<String, Object>> serializedDisplayData = Lists.newArrayList();
+          for (DisplayData.Item item : DisplayData.from(value).items()) {
+            serializedDisplayData.add(MAPPER.convertValue(item, Map.class));
+          }
+
+          jgen.writeFieldName("display_data");
+          jgen.writeObject(serializedDisplayData);
+        }
         jgen.writeEndObject();
       }
     }
