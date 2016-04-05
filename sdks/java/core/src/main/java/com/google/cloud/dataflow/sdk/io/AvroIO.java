@@ -26,6 +26,7 @@ import com.google.cloud.dataflow.sdk.io.Read.Bounded;
 import com.google.cloud.dataflow.sdk.options.PipelineOptions;
 import com.google.cloud.dataflow.sdk.runners.PipelineRunner;
 import com.google.cloud.dataflow.sdk.transforms.PTransform;
+import com.google.cloud.dataflow.sdk.transforms.display.DisplayData;
 import com.google.cloud.dataflow.sdk.util.IOChannelUtils;
 import com.google.cloud.dataflow.sdk.util.MimeTypes;
 import com.google.cloud.dataflow.sdk.values.PCollection;
@@ -323,6 +324,14 @@ public class AvroIO {
         // Honor the default output coder that would have been used by this PTransform.
         pcol.setCoder(getDefaultOutputCoder());
         return pcol;
+      }
+
+      @Override
+      public void populateDisplayData(DisplayData.Builder builder) {
+        builder.add("schema", type);
+        if (filepattern != null) {
+          builder.add("filePattern", filepattern);
+        }
       }
 
       @Override
@@ -676,6 +685,22 @@ public class AvroIO {
             com.google.cloud.dataflow.sdk.io.Write.to(
                 new AvroSink<>(
                     filenamePrefix, filenameSuffix, shardTemplate, AvroCoder.of(type, schema))));
+      }
+
+      @Override
+      public void populateDisplayData(DisplayData.Builder builder) {
+        builder.add("schema", type);
+        if (filenamePrefix != null) {
+          builder.add("fileNamePrefix", filenamePrefix);
+        }
+
+        if (filenameSuffix != null && !filenameSuffix.isEmpty()) {
+          builder.add("fileNameSuffix", filenameSuffix);
+        }
+
+        if (numShards != 0) {
+          builder.add("numShards", numShards);
+        }
       }
 
       /**

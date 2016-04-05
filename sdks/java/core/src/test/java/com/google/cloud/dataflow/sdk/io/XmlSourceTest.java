@@ -20,6 +20,7 @@ package com.google.cloud.dataflow.sdk.io;
 import static com.google.cloud.dataflow.sdk.testing.SourceTestUtils.assertSplitAtFractionExhaustive;
 import static com.google.cloud.dataflow.sdk.testing.SourceTestUtils.assertSplitAtFractionFails;
 import static com.google.cloud.dataflow.sdk.testing.SourceTestUtils.assertSplitAtFractionSucceedsAndConsistent;
+import static com.google.cloud.dataflow.sdk.transforms.display.DisplayDataMatchers.hasDisplayItem;
 import static org.hamcrest.Matchers.both;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.containsString;
@@ -33,6 +34,7 @@ import com.google.cloud.dataflow.sdk.options.PipelineOptions;
 import com.google.cloud.dataflow.sdk.options.PipelineOptionsFactory;
 import com.google.cloud.dataflow.sdk.testing.DataflowAssert;
 import com.google.cloud.dataflow.sdk.testing.TestPipeline;
+import com.google.cloud.dataflow.sdk.transforms.display.DisplayData;
 import com.google.cloud.dataflow.sdk.values.PCollection;
 import com.google.common.collect.ImmutableList;
 
@@ -821,5 +823,24 @@ public class XmlSourceTest {
 
     DataflowAssert.that(output).containsInAnyOrder(expectedResults);
     p.run();
+  }
+
+  @Test
+  public void testDisplayData() {
+
+
+    XmlSource<?> source = XmlSource
+        .<Integer>from("foo.xml")
+        .withRootElement("bird")
+        .withRecordElement("cat")
+        .withMinBundleSize(1234)
+        .withRecordClass(Integer.class);
+    DisplayData displayData = DisplayData.from(source);
+
+    assertThat(displayData, hasDisplayItem("filePattern", "foo.xml"));
+    assertThat(displayData, hasDisplayItem("rootElement", "bird"));
+    assertThat(displayData, hasDisplayItem("recordElement", "cat"));
+    assertThat(displayData, hasDisplayItem("recordClass", Integer.class));
+    assertThat(displayData, hasDisplayItem("minBundleSize", 1234));
   }
 }

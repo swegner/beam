@@ -17,6 +17,7 @@
  */
 package com.google.cloud.dataflow.sdk.io;
 
+import static com.google.cloud.dataflow.sdk.transforms.display.DisplayDataMatchers.hasDisplayItem;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
@@ -29,6 +30,7 @@ import com.google.cloud.dataflow.sdk.io.AvroSource.AvroReader.Seeker;
 import com.google.cloud.dataflow.sdk.options.PipelineOptions;
 import com.google.cloud.dataflow.sdk.options.PipelineOptionsFactory;
 import com.google.cloud.dataflow.sdk.testing.SourceTestUtils;
+import com.google.cloud.dataflow.sdk.transforms.display.DisplayData;
 import com.google.common.base.MoreObjects;
 
 import org.apache.avro.Schema;
@@ -505,6 +507,20 @@ public class AvroSourceTest {
       assertEquals(i, s.find(findIn, findIn.length));
       findIn[i] = 1;
     }
+  }
+
+  @Test
+  public void testDisplayData() {
+    AvroSource<Bird> source = AvroSource
+        .from("foobar.txt")
+        .withSchema(Bird.class)
+        .withMinBundleSize(1234);
+
+    DisplayData displayData = DisplayData.from(source);
+    assertThat(displayData, hasDisplayItem("filePattern", "foobar.txt"));
+    assertThat(displayData,
+        hasDisplayItem("schema", ReflectData.get().getSchema(Bird.class).toString()));
+    assertThat(displayData, hasDisplayItem("minBundleSize", 1234));
   }
 
   /**

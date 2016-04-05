@@ -22,6 +22,7 @@ import static com.google.cloud.dataflow.sdk.util.StringUtils.approximateSimpleNa
 import com.google.cloud.dataflow.sdk.coders.Coder;
 import com.google.cloud.dataflow.sdk.runners.DirectPipelineRunner;
 import com.google.cloud.dataflow.sdk.transforms.PTransform;
+import com.google.cloud.dataflow.sdk.transforms.display.DisplayData;
 import com.google.cloud.dataflow.sdk.util.SerializableUtils;
 import com.google.cloud.dataflow.sdk.util.WindowedValue;
 import com.google.cloud.dataflow.sdk.util.WindowingStrategy;
@@ -144,6 +145,13 @@ public class Read {
       return "Read(" + approximateSimpleName(source.getClass()) + ")";
     }
 
+    @Override
+    public void populateDisplayData(DisplayData.Builder builder) {
+      builder
+          .add("source", source.getClass())
+          .include(source);
+    }
+
     static {
       registerDefaultTransformEvaluator();
     }
@@ -249,6 +257,13 @@ public class Read {
     @Override
     public String getKindString() {
       return "Read(" + approximateSimpleName(source.getClass()) + ")";
+    }
+
+    @Override
+    public void populateDisplayData(DisplayData.Builder builder) {
+      builder
+          .add("source", source.getClass())
+          .include(source);
     }
   }
 }

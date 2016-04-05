@@ -21,6 +21,7 @@ import static com.google.cloud.dataflow.sdk.TestUtils.INTS_ARRAY;
 import static com.google.cloud.dataflow.sdk.TestUtils.LINES_ARRAY;
 import static com.google.cloud.dataflow.sdk.TestUtils.NO_INTS_ARRAY;
 import static com.google.cloud.dataflow.sdk.TestUtils.NO_LINES_ARRAY;
+import static com.google.cloud.dataflow.sdk.transforms.display.DisplayDataMatchers.hasDisplayItem;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -41,6 +42,7 @@ import com.google.cloud.dataflow.sdk.testing.TestDataflowPipelineOptions;
 import com.google.cloud.dataflow.sdk.testing.TestPipeline;
 import com.google.cloud.dataflow.sdk.transforms.Create;
 import com.google.cloud.dataflow.sdk.transforms.PTransform;
+import com.google.cloud.dataflow.sdk.transforms.display.DisplayData;
 import com.google.cloud.dataflow.sdk.util.CoderUtils;
 import com.google.cloud.dataflow.sdk.util.GcsUtil;
 import com.google.cloud.dataflow.sdk.util.TestCredential;
@@ -198,6 +200,18 @@ public class TextIOTest {
     }
   }
 
+  @Test
+  public void testReadDisplayData() {
+    TextIO.Read.Bound<?> read = TextIO.Read
+        .from("foo.*")
+        .withCompressionType(CompressionType.BZIP2);
+
+    DisplayData displayData = DisplayData.from(read);
+
+    assertThat(displayData, hasDisplayItem("filePattern", "foo.*"));
+    assertThat(displayData, hasDisplayItem("compressionType", CompressionType.BZIP2.toString()));
+  }
+
   <T> void runTestWrite(T[] elems, Coder<T> coder) throws Exception {
     File tmpFile = tmpFolder.newFile("file.txt");
     String filename = tmpFile.getPath();
@@ -283,6 +297,21 @@ public class TextIOTest {
           TextIO.Write.to("/tmp/file.txt").named("HerWrite");
       assertEquals("HerWrite", transform3.getName());
     }
+  }
+
+  @Test
+  public void testWriteDisplayData() {
+    TextIO.Write.Bound<?> write = TextIO.Write
+        .to("foo")
+        .withSuffix("bar")
+        .withNumShards(100);
+
+    DisplayData displayData = DisplayData.from(write);
+
+    assertThat(displayData, hasDisplayItem("fileNamePrefix", "foo"));
+    assertThat(displayData, hasDisplayItem("fileNameSuffix", "bar"));
+    assertThat(displayData, hasDisplayItem("numShards", 100));
+
   }
 
   @Test
