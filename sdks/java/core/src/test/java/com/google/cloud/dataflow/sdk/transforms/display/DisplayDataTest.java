@@ -19,6 +19,7 @@ package com.google.cloud.dataflow.sdk.transforms.display;
 
 import static com.google.cloud.dataflow.sdk.transforms.display.DisplayDataMatchers.hasDisplayItem;
 import static com.google.cloud.dataflow.sdk.transforms.display.DisplayDataMatchers.hasKey;
+import static com.google.cloud.dataflow.sdk.transforms.display.DisplayDataMatchers.hasNamespace;
 import static com.google.cloud.dataflow.sdk.transforms.display.DisplayDataMatchers.hasType;
 import static com.google.cloud.dataflow.sdk.transforms.display.DisplayDataMatchers.hasValue;
 import static com.google.cloud.dataflow.sdk.transforms.display.DisplayDataMatchers.includes;
@@ -158,33 +159,28 @@ public class DisplayDataTest {
   @Test
   public void testItemProperties() {
     final Instant value = Instant.now();
-    DisplayData data = DisplayData.from(new ConcreteComponent(value));
+    DisplayData data = DisplayData.from(new HasDisplayData() {
+      @Override
+      public void populateDisplayData(DisplayData.Builder builder) {
+        builder.add("now", value)
+            .withLabel("the current instant")
+            .withLinkUrl("http://time.gov")
+            .withNamespace(DisplayDataTest.class);
+      }
+    });
 
     @SuppressWarnings("unchecked")
     DisplayData.Item item = (DisplayData.Item) data.items().toArray()[0];
     assertThat(
         item,
         allOf(
-            hasNamespace(Matchers.<Class<?>>is(ConcreteComponent.class)),
+            hasNamespace(DisplayDataTest.class),
             hasKey("now"),
             hasType(DisplayData.Type.TIMESTAMP),
             hasValue(ISO_FORMATTER.print(value)),
             hasShortValue(nullValue(String.class)),
             hasLabel(is("the current instant")),
             hasUrl(is("http://time.gov"))));
-  }
-
-  static class ConcreteComponent implements HasDisplayData {
-    private Instant value;
-
-    ConcreteComponent(Instant value) {
-      this.value = value;
-    }
-
-    @Override
-    public void populateDisplayData(DisplayData.Builder builder) {
-      builder.add("now", value).withLabel("the current instant").withLinkUrl("http://time.gov");
-    }
   }
 
   @Test
@@ -350,6 +346,22 @@ public class DisplayDataTest {
   }
 
   @Test
+  public void testDuplicateKeyWithNamespaceOverrideDoesntThrow() {
+    DisplayData displayData = DisplayData.from(
+        new HasDisplayData() {
+          @Override
+          public void populateDisplayData(DisplayData.Builder builder) {
+            builder
+                .add("foo", "bar")
+                .add("foo", "baz")
+                  .withNamespace(DisplayDataTest.class);
+          }
+        });
+
+    assertThat(displayData.items(), hasSize(2));
+  }
+
+  @Test
   public void testToString() {
     HasDisplayData component = new HasDisplayData() {
       @Override
@@ -480,6 +492,40 @@ public class DisplayDataTest {
   }
 
   @Test
+  public void testObjectInputType() {
+    DisplayData data = DisplayData.from(new HasDisplayData() {
+      @Override
+      public void populateDisplayData(Builder builder) {
+        builder
+            .add("castInteger", (Object)1234)
+            .add("anonymousType", new Object() {
+              @Override
+              public String toString() {
+                return "foobar";
+              }
+            });
+      }
+    });
+
+    assertThat(data, hasDisplayItem("castInteger", 1234));
+    assertThat(data, hasDisplayItem("anonymousType", "foobar"));
+  }
+
+  @Test
+  public void testKnownTypeInferrence() {
+    assertEquals(DisplayData.Type.INTEGER, DisplayData.Type.inferFrom(1234));
+    assertEquals(DisplayData.Type.INTEGER, DisplayData.Type.inferFrom(1234L));
+    assertEquals(DisplayData.Type.FLOAT, DisplayData.Type.inferFrom(12.3));
+    assertEquals(DisplayData.Type.FLOAT, DisplayData.Type.inferFrom(12.3f));
+    assertEquals(DisplayData.Type.BOOLEAN, DisplayData.Type.inferFrom(true));
+    assertEquals(DisplayData.Type.TIMESTAMP, DisplayData.Type.inferFrom(Instant.now()));
+    assertEquals(DisplayData.Type.DURATION, DisplayData.Type.inferFrom(Duration.millis(1234)));
+    assertEquals(DisplayData.Type.JAVA_CLASS, DisplayData.Type.inferFrom(DisplayDataTest.class));
+    assertEquals(DisplayData.Type.STRING, DisplayData.Type.inferFrom("hello world"));
+    assertEquals(DisplayData.Type.STRING, DisplayData.Type.inferFrom(new Object() {}));
+  }
+
+  @Test
   public void testStringFormatting() throws IOException {
     final Instant now = Instant.now();
     final Duration oneHour = Duration.standardHours(1);
@@ -534,7 +580,7 @@ public class DisplayDataTest {
         hasItem(
             allOf(
                 hasKey("alpha"),
-                hasNamespace(Matchers.<Class<?>>is(component.getClass())))));
+                hasNamespace(component.getClass()))));
   }
 
   @Test
@@ -610,26 +656,13 @@ public class DisplayDataTest {
         @Override
         public void populateDisplayData(Builder builder) {
           builder.add("key", "value")
-                  .withLabel(null)
-                  .withLinkUrl(null);
+              .withLabel(null)
+              .withLinkUrl(null)
+              .withNamespace(null);
         }
       });
 
     // Should not throw
-  }
-
-  private static Matcher<DisplayData.Item> hasNamespace(Matcher<Class<?>> nsMatcher) {
-    return new FeatureMatcher<DisplayData.Item, Class<?>>(
-        nsMatcher, "display item with namespace", "namespace") {
-      @Override
-      protected Class<?> featureValueOf(DisplayData.Item actual) {
-        try {
-          return Class.forName(actual.getNamespace());
-        } catch (ClassNotFoundException e) {
-          return null;
-        }
-      }
-    };
   }
 
   private static Matcher<DisplayData.Item> hasLabel(Matcher<String> labelMatcher) {
