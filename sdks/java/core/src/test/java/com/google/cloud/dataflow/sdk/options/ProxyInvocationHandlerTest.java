@@ -31,9 +31,7 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.google.cloud.dataflow.sdk.transforms.display.DisplayData;
-import com.google.cloud.dataflow.sdk.transforms.display.DisplayDataMatchers;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -45,14 +43,12 @@ import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import org.hamcrest.Matchers;
-import org.joda.time.Duration;
 import org.joda.time.Instant;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
-import sun.reflect.generics.reflectiveObjects.NotImplementedException;
 
 import java.io.IOException;
 import java.util.List;
@@ -716,7 +712,6 @@ public class ProxyInvocationHandlerTest {
   @Test
   public void testDisplayDataKnownTypes() {
     Instant now = Instant.now();
-    Duration fiveMins = Duration.standardMinutes(5);
 
     KnownTypesOptions options = PipelineOptionsFactory.as(KnownTypesOptions.class);
     options.setInteger(1234);
