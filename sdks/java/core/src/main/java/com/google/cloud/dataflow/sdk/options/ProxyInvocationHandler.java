@@ -138,7 +138,7 @@ class ProxyInvocationHandler implements InvocationHandler {
     } else if (args != null && "populateDisplayData".equals(method.getName())
         && args[0] instanceof DisplayData.Builder) {
       @SuppressWarnings("unchecked")
-      DisplayData.Builder builder = (DisplayData.Builder)args[0];
+      DisplayData.Builder builder = (DisplayData.Builder) args[0];
       populateDisplayData(builder);
       return Void.TYPE;
     }
@@ -261,7 +261,7 @@ class ProxyInvocationHandler implements InvocationHandler {
   }
 
   /**
-   * {@link HasDisplayData#populateDisplayData}
+   * Populate display data. See {@link HasDisplayData#populateDisplayData}.
    */
   private void populateDisplayData(DisplayData.Builder builder) {
     Preconditions.checkState(canPopulateDisplayData(),
@@ -288,7 +288,8 @@ class ProxyInvocationHandler implements InvocationHandler {
     return jsonOptions.isEmpty();
   }
 
-  private Multimap<String, Class<?>> buildOptionToInterfaceMap(Set<PipelineOptionsReflector.Property> props) {
+  private Multimap<String, Class<?>> buildOptionToInterfaceMap(
+      Set<PipelineOptionsReflector.Property> props) {
     Multimap<String, Class<?>> keyToInterfaceMap = HashMultimap.create();
     for (PipelineOptionsReflector.Property prop : props) {
       keyToInterfaceMap.put(prop.name(), prop.definingInterface());
@@ -299,7 +300,7 @@ class ProxyInvocationHandler implements InvocationHandler {
       List<Class<?>> ifaces = Lists.newArrayList(entry.getValue());
       for (int i = 0; i < ifaces.size(); i++) {
         Class<?> iface1 = ifaces.get(i);
-        for (int j = i+1; j < ifaces.size(); j++) {
+        for (int j = i + 1; j < ifaces.size(); j++) {
           Class<?> iface2 = ifaces.get(j);
 
           if (iface1.isAssignableFrom(iface2)) {

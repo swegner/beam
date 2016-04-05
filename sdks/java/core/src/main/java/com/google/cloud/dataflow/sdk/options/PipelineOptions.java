@@ -26,12 +26,12 @@ import com.google.cloud.dataflow.sdk.runners.DirectPipelineRunner;
 import com.google.cloud.dataflow.sdk.runners.PipelineRunner;
 import com.google.cloud.dataflow.sdk.transforms.DoFn;
 import com.google.cloud.dataflow.sdk.transforms.DoFn.Context;
+import com.google.cloud.dataflow.sdk.transforms.display.HasDisplayData;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
-import com.google.cloud.dataflow.sdk.transforms.display.HasDisplayData;
 
 import java.lang.reflect.Proxy;
 import java.util.ServiceLoader;

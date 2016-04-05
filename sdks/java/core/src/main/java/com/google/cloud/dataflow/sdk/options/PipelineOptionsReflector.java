@@ -52,7 +52,7 @@ class PipelineOptionsReflector {
     Multimap<String, Method> propsToGetters = getPropertyNamesToGetters(methods);
 
     ImmutableSet.Builder<Property> setBuilder = ImmutableSet.builder();
-    for(Map.Entry<String, Method> propAndGetter : propsToGetters.entries()) {
+    for (Map.Entry<String, Method> propAndGetter : propsToGetters.entries()) {
       String prop = propAndGetter.getKey();
       Method getter = propAndGetter.getValue();
       Class<?> declaringClass = getter.getDeclaringClass();
@@ -65,7 +65,7 @@ class PipelineOptionsReflector {
         continue;
       }
 
-      setBuilder.add(Property.of((Class<? extends PipelineOptions>)declaringClass, prop, getter));
+      setBuilder.add(Property.of((Class<? extends PipelineOptions>) declaringClass, prop, getter));
     }
 
     return setBuilder.build();
@@ -131,7 +131,6 @@ class PipelineOptionsReflector {
 
     /**
      * The {@link PipelineOptions} interface which defines this {@link Property}.
-     * @return
      */
     Class<? extends PipelineOptions> definingInterface() {
       return clazz;

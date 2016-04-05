@@ -497,7 +497,7 @@ public class DisplayDataTest {
       @Override
       public void populateDisplayData(Builder builder) {
         builder
-            .add("castInteger", (Object)1234)
+            .add("castInteger", (Object) 1234)
             .add("anonymousType", new Object() {
               @Override
               public String toString() {
