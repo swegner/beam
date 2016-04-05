@@ -291,7 +291,7 @@ class ProxyInvocationHandler implements InvocationHandler {
   private Multimap<String, Class<?>> buildOptionToInterfaceMap(Set<PipelineOptionsReflector.Property> props) {
     Multimap<String, Class<?>> keyToInterfaceMap = HashMultimap.create();
     for (PipelineOptionsReflector.Property prop : props) {
-      keyToInterfaceMap.put(prop.name(), prop.definingClass());
+      keyToInterfaceMap.put(prop.name(), prop.definingInterface());
     }
 
     // Filter out overridden options
