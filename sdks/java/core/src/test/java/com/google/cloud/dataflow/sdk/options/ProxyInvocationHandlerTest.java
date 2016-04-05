@@ -31,6 +31,7 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.google.cloud.dataflow.sdk.transforms.display.DisplayData;
 import com.google.cloud.dataflow.sdk.transforms.display.DisplayDataMatchers;
 import com.google.common.collect.ImmutableList;
@@ -43,6 +44,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import org.hamcrest.Matchers;
 import org.joda.time.Duration;
 import org.joda.time.Instant;
 import org.junit.Rule;
@@ -52,6 +54,7 @@ import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 import sun.reflect.generics.reflectiveObjects.NotImplementedException;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -835,6 +838,40 @@ public class ProxyInvocationHandlerTest {
 
     expectedException.expect(IllegalStateException.class);
     DisplayData.from(deserializedOptions);
+  }
+
+  @Test
+  public void testDisplayDataJsonSerialization() throws IOException {
+    FooOptions options = PipelineOptionsFactory.as(FooOptions.class);
+    options.setFoo("bar");
+
+    ObjectMapper mapper = new ObjectMapper();
+    Map<String, Object> map = mapper.readValue(mapper.writeValueAsBytes(options), Map.class);
+
+    assertThat("main pipeline options data keyed as 'options'", map, Matchers.hasKey("options"));
+    assertThat("display data keyed as 'display_data'", map, Matchers.hasKey("display_data"));
+
+    Map<?, ?> expectedDisplayItem = ImmutableMap.<String, String>builder()
+        .put("namespace", FooOptions.class.getName())
+        .put("key", "foo")
+        .put("value", "bar")
+        .put("type", "STRING")
+        .build();
+
+    List<Map<?, ?>> deserializedDisplayData = (List<Map<?, ?>>) map.get("display_data");
+    assertThat(deserializedDisplayData, Matchers.hasItem(expectedDisplayItem));
+  }
+
+  @Test
+  public void testSkipsDisplayDataSerializationWhenInstantiatedFromJson() throws Exception {
+    FooOptions options = PipelineOptionsFactory.as(FooOptions.class);
+    FooOptions deserializedOptions = serializeDeserialize(FooOptions.class, options);
+
+    ObjectMapper mapper = new ObjectMapper();
+    Map<String, Object> map =
+        mapper.readValue(mapper.writeValueAsBytes(deserializedOptions), Map.class);
+
+    assertThat(map, not(Matchers.hasKey("display_data")));
   }
 
   private <T extends PipelineOptions> T serializeDeserialize(Class<T> kls, PipelineOptions options)
