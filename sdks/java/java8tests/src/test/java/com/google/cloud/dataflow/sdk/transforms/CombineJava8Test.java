@@ -17,12 +17,19 @@
  */
 package com.google.cloud.dataflow.sdk.transforms;
 
+import static org.hamcrest.Matchers.empty;
+import static org.junit.Assert.assertThat;
+
 import com.google.cloud.dataflow.sdk.Pipeline;
 import com.google.cloud.dataflow.sdk.testing.DataflowAssert;
 import com.google.cloud.dataflow.sdk.testing.TestPipeline;
+import com.google.cloud.dataflow.sdk.transforms.display.DisplayData;
+import com.google.cloud.dataflow.sdk.util.SerializableUtils;
 import com.google.cloud.dataflow.sdk.values.KV;
 import com.google.cloud.dataflow.sdk.values.PCollection;
 
+import com.google.common.collect.Iterables;
+import org.junit.Assert;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -130,5 +137,32 @@ public class CombineJava8Test implements Serializable {
         KV.of("b", 2),
         KV.of("c", 4));
     pipeline.run();
+  }
+
+  /**
+   * Tests that we can serialize Combine fns constructed from a lambda. Lambdas can be problematic
+   * because the {@link Class} object is synthetic and cannot be deserialized.
+   */
+  @Test
+  public void testLambdaSerialization() {
+    SerializableFunction<Iterable<Object>, Object> combiner = xs -> Iterables.getFirst(xs, 0);
+
+    try {
+      SerializableUtils.clone(combiner.getClass());
+      Assert.fail("Expected lambda class serialization to fail. "
+          + "If it's fixed, we can remove special behavior in Combine.");
+    } catch (IllegalArgumentException e) {
+      // Expected
+    }
+
+    Combine.Globally<?, ?> combine = Combine.globally(combiner);
+    SerializableUtils.clone(combine); // should not throw.
+  }
+
+  @Test
+  public void testLambdaDisplayData() {
+    Combine.Globally<?, ?> combine = Combine.globally(xs -> Iterables.getFirst(xs, 0));
+    DisplayData displayData = DisplayData.from(combine);
+    assertThat(displayData.items(), empty());
   }
 }
