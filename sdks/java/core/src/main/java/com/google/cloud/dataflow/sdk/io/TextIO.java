@@ -28,6 +28,7 @@ import com.google.cloud.dataflow.sdk.options.PipelineOptions;
 import com.google.cloud.dataflow.sdk.runners.DataflowPipelineRunner;
 import com.google.cloud.dataflow.sdk.runners.DirectPipelineRunner;
 import com.google.cloud.dataflow.sdk.transforms.PTransform;
+import com.google.cloud.dataflow.sdk.transforms.display.DisplayData;
 import com.google.cloud.dataflow.sdk.util.IOChannelUtils;
 import com.google.cloud.dataflow.sdk.util.MimeTypes;
 import com.google.cloud.dataflow.sdk.values.PCollection;
@@ -340,6 +341,14 @@ public class TextIO {
       }
 
       @Override
+      public void populateDisplayData(DisplayData.Builder builder) {
+        builder.add("compressionType", compressionType.toString());
+        if (filepattern != null) {
+          builder.add("filePattern", filepattern);
+        }
+      }
+
+      @Override
       protected Coder<T> getDefaultOutputCoder() {
         return coder;
       }
@@ -630,6 +639,21 @@ public class TextIO {
         return input.apply("Write", com.google.cloud.dataflow.sdk.io.Write.to(
             new TextSink<>(
                 filenamePrefix, filenameSuffix, shardTemplate, coder)));
+      }
+
+      @Override
+      public void populateDisplayData(DisplayData.Builder builder) {
+        if (filenamePrefix != null) {
+          builder.add("fileNamePrefix", filenamePrefix);
+        }
+
+        if (filenameSuffix != null && !filenameSuffix.isEmpty()) {
+          builder.add("fileNameSuffix", filenameSuffix);
+        }
+
+        if (numShards != 0) {
+          builder.add("numShards", numShards);
+        }
       }
 
       /**
