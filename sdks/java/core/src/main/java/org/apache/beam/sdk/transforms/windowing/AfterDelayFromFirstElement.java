@@ -32,6 +32,7 @@ import org.apache.beam.sdk.util.state.StateMerging;
 import org.apache.beam.sdk.util.state.StateTag;
 import org.apache.beam.sdk.util.state.StateTags;
 
+import com.google.auto.value.AutoValue;
 import com.google.common.collect.ImmutableList;
 
 import org.joda.time.Duration;
@@ -41,7 +42,6 @@ import org.joda.time.format.PeriodFormatter;
 
 import java.util.List;
 import java.util.Locale;
-import java.util.Objects;
 import javax.annotation.Nullable;
 
 /**
@@ -106,7 +106,7 @@ public abstract class AfterDelayFromFirstElement extends OnceTrigger {
    * CalendarWindows.
    */
   public AfterDelayFromFirstElement alignedTo(final Duration size, final Instant offset) {
-    return newWith(new AlignFn(size, offset));
+    return newWith(AlignFn.of(size, offset));
   }
 
   /**
@@ -124,7 +124,7 @@ public abstract class AfterDelayFromFirstElement extends OnceTrigger {
    * @return An updated time trigger that will wait the additional time before firing.
    */
   public AfterDelayFromFirstElement plusDelayOf(final Duration delay) {
-    return newWith(new DelayFn(delay));
+    return newWith(DelayFn.of(delay));
   }
 
   /**
@@ -251,83 +251,45 @@ public abstract class AfterDelayFromFirstElement extends OnceTrigger {
   /**
    * A {@link SerializableFunction} to delay the timestamp at which this triggers fires.
    */
-  private static final class DelayFn implements SerializableFunction<Instant, Instant> {
-    private final Duration delay;
+  @AutoValue
+  abstract static class DelayFn implements SerializableFunction<Instant, Instant> {
+    abstract Duration getDelay();
 
-    public DelayFn(Duration delay) {
-      this.delay = delay;
+    public static DelayFn of(Duration delay) {
+      return new AutoValue_AfterDelayFromFirstElement_DelayFn(delay);
     }
 
     @Override
     public Instant apply(Instant input) {
-      return input.plus(delay);
-    }
-
-    @Override
-    public boolean equals(Object object) {
-      if (object == this) {
-        return true;
-      }
-
-      if (!(object instanceof DelayFn)) {
-        return false;
-      }
-
-      return this.delay.equals(((DelayFn) object).delay);
-    }
-
-    @Override
-    public int hashCode() {
-      return Objects.hash(delay);
+      return input.plus(getDelay());
     }
 
     @Override
     public String toString() {
-      return PERIOD_FORMATTER.print(delay.toPeriod());
+      return PERIOD_FORMATTER.print(getDelay().toPeriod());
     }
   }
 
   /**
    * A {@link SerializableFunction} to align an instant to the nearest interval boundary.
    */
-  static final class AlignFn implements SerializableFunction<Instant, Instant> {
-    private final Duration size;
-    private final Instant offset;
-
+  @AutoValue
+  abstract static class AlignFn implements SerializableFunction<Instant, Instant> {
+    abstract Duration getSize();
+    abstract Instant getOffset();
 
     /**
      * Aligns timestamps to the smallest multiple of {@code size} since the {@code offset} greater
      * than the timestamp.
      */
-    public AlignFn(Duration size, Instant offset) {
-      this.size = size;
-      this.offset = offset;
+    public static AlignFn of(Duration size, Instant offset) {
+      return new AutoValue_AfterDelayFromFirstElement_AlignFn(size, offset);
     }
 
     @Override
     public Instant apply(Instant point) {
-      long millisSinceStart = new Duration(offset, point).getMillis() % size.getMillis();
-      return millisSinceStart == 0 ? point : point.plus(size).minus(millisSinceStart);
-    }
-
-    @Override
-    public boolean equals(Object object) {
-      if (object == this) {
-        return true;
-      }
-
-      if (!(object instanceof AlignFn)) {
-        return false;
-      }
-
-      AlignFn other = (AlignFn) object;
-      return other.size.equals(this.size)
-          && other.offset.equals(this.offset);
-    }
-
-    @Override
-    public int hashCode() {
-      return Objects.hash(size, offset);
+      long millisSinceStart = new Duration(getOffset(), point).getMillis() % getSize().getMillis();
+      return millisSinceStart == 0 ? point : point.plus(getSize()).minus(millisSinceStart);
     }
   }
 }

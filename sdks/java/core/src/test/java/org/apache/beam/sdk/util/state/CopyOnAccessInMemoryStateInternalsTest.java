@@ -59,7 +59,7 @@ public class CopyOnAccessInMemoryStateInternalsTest {
   public void testGetWithEmpty() {
     CopyOnAccessInMemoryStateInternals<String> internals =
         CopyOnAccessInMemoryStateInternals.withUnderlying(key, null);
-    StateNamespace namespace = new StateNamespaceForTest("foo");
+    StateNamespace namespace = StateNamespaceForTest.of("foo");
     StateTag<Object, BagState<String>> bagTag = StateTags.bag("foo", StringUtf8Coder.of());
     BagState<String> stringBag = internals.state(namespace, bagTag);
     assertThat(stringBag.read(), emptyIterable());
@@ -79,7 +79,7 @@ public class CopyOnAccessInMemoryStateInternalsTest {
     CopyOnAccessInMemoryStateInternals<String> internals =
         CopyOnAccessInMemoryStateInternals.withUnderlying(key, underlying);
 
-    StateNamespace namespace = new StateNamespaceForTest("foo");
+    StateNamespace namespace = StateNamespaceForTest.of("foo");
     StateTag<Object, BagState<String>> bagTag = StateTags.bag("foo", StringUtf8Coder.of());
     BagState<String> stringBag = internals.state(namespace, bagTag);
     assertThat(stringBag.read(), emptyIterable());
@@ -105,7 +105,7 @@ public class CopyOnAccessInMemoryStateInternalsTest {
     CopyOnAccessInMemoryStateInternals<String> underlying =
         CopyOnAccessInMemoryStateInternals.withUnderlying(key, null);
 
-    StateNamespace namespace = new StateNamespaceForTest("foo");
+    StateNamespace namespace = StateNamespaceForTest.of("foo");
     StateTag<Object, ValueState<String>> valueTag = StateTags.value("foo", StringUtf8Coder.of());
     ValueState<String> underlyingValue = underlying.state(namespace, valueTag);
     assertThat(underlyingValue.read(), nullValue(String.class));
@@ -131,7 +131,7 @@ public class CopyOnAccessInMemoryStateInternalsTest {
     CopyOnAccessInMemoryStateInternals<String> underlying =
         CopyOnAccessInMemoryStateInternals.withUnderlying(key, null);
 
-    StateNamespace namespace = new StateNamespaceForTest("foo");
+    StateNamespace namespace = StateNamespaceForTest.of("foo");
     StateTag<Object, BagState<Integer>> valueTag = StateTags.bag("foo", VarIntCoder.of());
     BagState<Integer> underlyingValue = underlying.state(namespace, valueTag);
     assertThat(underlyingValue.read(), emptyIterable());
@@ -158,7 +158,7 @@ public class CopyOnAccessInMemoryStateInternalsTest {
         CopyOnAccessInMemoryStateInternals.withUnderlying(key, null);
     CombineFn<Long, long[], Long> sumLongFn = new Sum.SumLongFn();
 
-    StateNamespace namespace = new StateNamespaceForTest("foo");
+    StateNamespace namespace = StateNamespaceForTest.of("foo");
     CoderRegistry reg = TestPipeline.create().getCoderRegistry();
     StateTag<Object, AccumulatorCombiningState<Long, long[], Long>> stateTag =
         StateTags.combiningValue("summer",
@@ -188,7 +188,7 @@ public class CopyOnAccessInMemoryStateInternalsTest {
         CopyOnAccessInMemoryStateInternals.withUnderlying(key, null);
     KeyedCombineFn<String, Long, long[], Long> sumLongFn = new Sum.SumLongFn().asKeyedFn();
 
-    StateNamespace namespace = new StateNamespaceForTest("foo");
+    StateNamespace namespace = StateNamespaceForTest.of("foo");
     CoderRegistry reg = TestPipeline.create().getCoderRegistry();
     StateTag<String, AccumulatorCombiningState<Long, long[], Long>> stateTag =
         StateTags.keyedCombiningValue(
@@ -224,7 +224,7 @@ public class CopyOnAccessInMemoryStateInternalsTest {
     OutputTimeFn<BoundedWindow> outputTimeFn = (OutputTimeFn<BoundedWindow>)
         TestPipeline.create().apply(Create.of("foo")).getWindowingStrategy().getOutputTimeFn();
 
-    StateNamespace namespace = new StateNamespaceForTest("foo");
+    StateNamespace namespace = StateNamespaceForTest.of("foo");
     StateTag<Object, WatermarkHoldState<BoundedWindow>> stateTag =
         StateTags.watermarkStateInternal("wmstate", outputTimeFn);
     WatermarkHoldState<?> underlyingValue = underlying.state(namespace, stateTag);
@@ -254,7 +254,7 @@ public class CopyOnAccessInMemoryStateInternalsTest {
   public void testCommitWithoutUnderlying() {
     CopyOnAccessInMemoryStateInternals<String> internals =
         CopyOnAccessInMemoryStateInternals.withUnderlying(key, null);
-    StateNamespace namespace = new StateNamespaceForTest("foo");
+    StateNamespace namespace = StateNamespaceForTest.of("foo");
     StateTag<Object, BagState<String>> bagTag = StateTags.bag("foo", StringUtf8Coder.of());
     BagState<String> stringBag = internals.state(namespace, bagTag);
     assertThat(stringBag.read(), emptyIterable());
@@ -277,7 +277,7 @@ public class CopyOnAccessInMemoryStateInternalsTest {
     CopyOnAccessInMemoryStateInternals<String> internals =
         CopyOnAccessInMemoryStateInternals.withUnderlying(key, underlying);
 
-    StateNamespace namespace = new StateNamespaceForTest("foo");
+    StateNamespace namespace = StateNamespaceForTest.of("foo");
     StateTag<Object, BagState<String>> bagTag = StateTags.bag("foo", StringUtf8Coder.of());
     BagState<String> stringBag = underlying.state(namespace, bagTag);
     assertThat(stringBag.read(), emptyIterable());
@@ -306,7 +306,7 @@ public class CopyOnAccessInMemoryStateInternalsTest {
     CopyOnAccessInMemoryStateInternals<String> internals =
         CopyOnAccessInMemoryStateInternals.withUnderlying(key, secondUnderlying);
 
-    StateNamespace namespace = new StateNamespaceForTest("foo");
+    StateNamespace namespace = StateNamespaceForTest.of("foo");
     StateTag<Object, BagState<String>> bagTag = StateTags.bag("foo", StringUtf8Coder.of());
     BagState<String> stringBag = underlying.state(namespace, bagTag);
     assertThat(stringBag.read(), emptyIterable());
@@ -334,7 +334,7 @@ public class CopyOnAccessInMemoryStateInternalsTest {
     CopyOnAccessInMemoryStateInternals<String> internals =
         CopyOnAccessInMemoryStateInternals.withUnderlying(key, underlying);
 
-    StateNamespace namespace = new StateNamespaceForTest("foo");
+    StateNamespace namespace = StateNamespaceForTest.of("foo");
     StateTag<Object, BagState<String>> bagTag = StateTags.bag("foo", StringUtf8Coder.of());
     BagState<String> stringBag = underlying.state(namespace, bagTag);
     assertThat(stringBag.read(), emptyIterable());
@@ -367,7 +367,7 @@ public class CopyOnAccessInMemoryStateInternalsTest {
 
     internals.commit();
 
-    StateNamespace namespace = new StateNamespaceForTest("foo");
+    StateNamespace namespace = StateNamespaceForTest.of("foo");
     StateTag<Object, BagState<String>> bagTag = StateTags.bag("foo", StringUtf8Coder.of());
     BagState<String> stringBag = underlying.state(namespace, bagTag);
     assertThat(stringBag.read(), emptyIterable());
@@ -397,7 +397,7 @@ public class CopyOnAccessInMemoryStateInternalsTest {
     CopyOnAccessInMemoryStateInternals<String> internals =
         CopyOnAccessInMemoryStateInternals.withUnderlying(key, null);
 
-    StateNamespace namespace = new StateNamespaceForTest("foo");
+    StateNamespace namespace = StateNamespaceForTest.of("foo");
     StateTag<Object, BagState<String>> bagTag = StateTags.bag("foo", StringUtf8Coder.of());
     BagState<String> stringBag = internals.state(namespace, bagTag);
     assertThat(stringBag.read(), emptyIterable());
@@ -417,7 +417,7 @@ public class CopyOnAccessInMemoryStateInternalsTest {
     CopyOnAccessInMemoryStateInternals<String> internals =
         CopyOnAccessInMemoryStateInternals.withUnderlying(key, underlying);
 
-    StateNamespace namespace = new StateNamespaceForTest("foo");
+    StateNamespace namespace = StateNamespaceForTest.of("foo");
     StateTag<Object, BagState<String>> bagTag = StateTags.bag("foo", StringUtf8Coder.of());
     BagState<String> stringBag = underlying.state(namespace, bagTag);
     assertThat(stringBag.read(), emptyIterable());

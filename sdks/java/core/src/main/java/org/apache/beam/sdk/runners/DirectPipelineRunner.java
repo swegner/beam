@@ -71,6 +71,7 @@ import org.apache.beam.sdk.values.POutput;
 import org.apache.beam.sdk.values.PValue;
 import org.apache.beam.sdk.values.TypedPValue;
 
+import com.google.auto.value.AutoValue;
 import com.google.common.base.Function;
 import com.google.common.collect.Lists;
 
@@ -80,7 +81,6 @@ import org.slf4j.LoggerFactory;
 
 import java.io.Serializable;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -1039,7 +1039,7 @@ public class DirectPipelineRunner
 
     /**
      * Retrieves the value indicated by the given {@link PCollectionView}.
-     * Note that within the {@link DoFnContext} a {@link PCollectionView}
+     * Note that within the {@link DoFnWithContext} a {@link PCollectionView}
      * converts from this representation to a suitable side input value.
      */
     @Override
@@ -1167,32 +1167,13 @@ public class DirectPipelineRunner
    * The key by which GBK groups inputs - elements are grouped by the encoded form of the key,
    * but the original key may be accessed as well.
    */
-  private static class GroupingKey<K> {
-    private K key;
-    private byte[] encodedKey;
+  @AutoValue
+  abstract static class GroupingKey<K> {
+    abstract K getKey();
+    abstract byte[] getEncodedKey();
 
-    public GroupingKey(K key, byte[] encodedKey) {
-      this.key = key;
-      this.encodedKey = encodedKey;
-    }
-
-    public K getKey() {
-      return key;
-    }
-
-    @Override
-    public boolean equals(Object o) {
-      if (o instanceof GroupingKey) {
-        GroupingKey<?> that = (GroupingKey<?>) o;
-        return Arrays.equals(this.encodedKey, that.encodedKey);
-      } else {
-        return false;
-      }
-    }
-
-    @Override
-    public int hashCode() {
-      return Arrays.hashCode(encodedKey);
+    public static <K> GroupingKey of(K key, byte[] encodedKey) {
+      return new AutoValue_DirectPipelineRunner_GroupingKey(key, encodedKey);
     }
   }
 
@@ -1259,8 +1240,7 @@ public class DirectPipelineRunner
             " using " + keyCoder,
             exn);
       }
-      GroupingKey<K> groupingKey =
-          new GroupingKey<>(key, encodedKey);
+      GroupingKey<K> groupingKey = GroupingKey.of(key, encodedKey);
       List<V> values = groupingMap.get(groupingKey);
       if (values == null) {
         values = new ArrayList<V>();

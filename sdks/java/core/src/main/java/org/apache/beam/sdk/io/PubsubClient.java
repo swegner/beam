@@ -19,6 +19,7 @@
 package org.apache.beam.sdk.io;
 
 import com.google.api.client.repackaged.com.google.common.base.Preconditions;
+import com.google.auto.value.AutoValue;
 
 import java.io.IOException;
 import java.io.Serializable;
@@ -31,139 +32,76 @@ public interface PubsubClient extends AutoCloseable {
   /**
    * Path representing a cloud project id.
    */
-  class ProjectPath implements Serializable {
-    private final String path;
-
-    public ProjectPath(String path) {
-      this.path = path;
-    }
-
-    public String getPath() {
-      return path;
-    }
-
-    @Override
-    public boolean equals(Object o) {
-      if (this == o) {
-        return true;
-      }
-      if (o == null || getClass() != o.getClass()) {
-        return false;
-      }
-
-      ProjectPath that = (ProjectPath) o;
-
-      return path.equals(that.path);
-
-    }
-
-    @Override
-    public int hashCode() {
-      return path.hashCode();
-    }
+  @AutoValue
+  abstract class ProjectPath implements Serializable {
+    public abstract String getPath();
 
     @Override
     public String toString() {
-      return path;
+      return getPath();
     }
 
     public static ProjectPath fromId(String projectId) {
-      return new ProjectPath(String.format("projects/%s", projectId));
+      String path = String.format("projects/%s", projectId);
+      return new AutoValue_PubsubClient_ProjectPath(path);
     }
   }
 
   /**
    * Path representing a Pubsub subscription.
    */
-  class SubscriptionPath implements Serializable {
-    private final String path;
-
-    public SubscriptionPath(String path) {
-      this.path = path;
-    }
-
-    public String getPath() {
-      return path;
-    }
+  @AutoValue
+  abstract class SubscriptionPath implements Serializable {
+    public abstract String getPath();
 
     public String getV1Beta1Path() {
-      String[] splits = path.split("/");
+      String[] splits = getPath().split("/");
       Preconditions.checkState(splits.length == 4);
       return String.format("/subscriptions/%s/%s", splits[1], splits[3]);
     }
 
     @Override
-    public boolean equals(Object o) {
-      if (this == o) {
-        return true;
-      }
-      if (o == null || getClass() != o.getClass()) {
-        return false;
-      }
-      SubscriptionPath that = (SubscriptionPath) o;
-      return path.equals(that.path);
-    }
-
-    @Override
-    public int hashCode() {
-      return path.hashCode();
-    }
-
-    @Override
     public String toString() {
-      return path;
+      return getPath();
+    }
+
+    public static SubscriptionPath of(String path) {
+      return new AutoValue_PubsubClient_SubscriptionPath(path);
     }
 
     public static SubscriptionPath fromName(String projectId, String subscriptionName) {
-      return new SubscriptionPath(String.format("projects/%s/subscriptions/%s",
-          projectId, subscriptionName));
+      String path = String.format("projects/%s/subscriptions/%s",
+          projectId, subscriptionName);
+      return of(path);
     }
   }
 
   /**
    * Path representing a Pubsub topic.
    */
-  class TopicPath implements Serializable {
-    private final String path;
+  @AutoValue
+  abstract class TopicPath implements Serializable {
+    public abstract String getPath();
 
-    public TopicPath(String path) {
-      this.path = path;
+    public static TopicPath of(String path) {
+      return new AutoValue_PubsubClient_TopicPath(path);
     }
 
-    public String getPath() {
-      return path;
-    }
 
     public String getV1Beta1Path() {
-      String[] splits = path.split("/");
+      String[] splits = getPath().split("/");
       Preconditions.checkState(splits.length == 4);
       return String.format("/topics/%s/%s", splits[1], splits[3]);
     }
 
     @Override
-    public boolean equals(Object o) {
-      if (this == o) {
-        return true;
-      }
-      if (o == null || getClass() != o.getClass()) {
-        return false;
-      }
-      TopicPath topicPath = (TopicPath) o;
-      return path.equals(topicPath.path);
-    }
-
-    @Override
-    public int hashCode() {
-      return path.hashCode();
-    }
-
-    @Override
     public String toString() {
-      return path;
+      return getPath();
     }
 
     public static TopicPath fromName(String projectId, String topicName) {
-      return new TopicPath(String.format("projects/%s/topics/%s", projectId, topicName));
+      String path = String.format("projects/%s/topics/%s", projectId, topicName);
+      return TopicPath.of(path);
     }
   }
 
@@ -259,7 +197,7 @@ public interface PubsubClient extends AutoCloseable {
       throws IOException;
 
   /**
-   * Acknowldege messages from {@code subscription} with {@code ackIds}.
+   * Acknowledge messages from {@code subscription} with {@code ackIds}.
    *
    * @throws IOException
    */

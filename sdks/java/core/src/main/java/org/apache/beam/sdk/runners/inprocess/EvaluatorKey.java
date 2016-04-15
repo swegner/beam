@@ -19,8 +19,7 @@ package org.apache.beam.sdk.runners.inprocess;
 
 import org.apache.beam.sdk.transforms.AppliedPTransform;
 
-import java.util.Objects;
-
+import com.google.auto.value.AutoValue;
 /**
  * A (Transform, Pipeline Execution) key for stateful evaluators.
  *
@@ -29,27 +28,14 @@ import java.util.Objects;
  * {@link EvaluatorKey} is used to ensure that multiple Pipelines can be executed without sharing
  * the same evaluators.
  */
-final class EvaluatorKey {
-  private final AppliedPTransform<?, ?, ?> transform;
-  private final InProcessEvaluationContext context;
+@AutoValue
+abstract class EvaluatorKey {
 
-  public EvaluatorKey(AppliedPTransform<?, ?, ?> transform, InProcessEvaluationContext context) {
-    this.transform = transform;
-    this.context = context;
-  }
+  abstract AppliedPTransform<?, ?, ?> getTransform();
+  abstract InProcessEvaluationContext getContext();
 
-  @Override
-  public int hashCode() {
-    return Objects.hash(transform, context);
-  }
-
-  @Override
-  public boolean equals(Object other) {
-    if (other == null || !(other instanceof EvaluatorKey)) {
-      return false;
-    }
-    EvaluatorKey that = (EvaluatorKey) other;
-    return Objects.equals(this.transform, that.transform)
-        && Objects.equals(this.context, that.context);
+  public static EvaluatorKey of(
+      AppliedPTransform<?, ?, ?> transform, InProcessEvaluationContext context) {
+    return new AutoValue_EvaluatorKey(transform, context);
   }
 }

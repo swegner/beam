@@ -17,49 +17,30 @@
  */
 package org.apache.beam.sdk.util.state;
 
+import com.google.auto.value.AutoValue;
+
 import java.io.IOException;
-import java.util.Objects;
 
 /**
  * A simple {@link StateNamespace} used for testing.
  */
-public class StateNamespaceForTest implements StateNamespace {
-  private String key;
+@AutoValue
+public abstract class StateNamespaceForTest implements StateNamespace {
 
-  public StateNamespaceForTest(String key) {
-    this.key = key;
+  public static StateNamespaceForTest of(String key) {
+    return new AutoValue_StateNamespaceForTest(key);
   }
 
   @Override
-  public String stringKey() {
-    return key;
-  }
+  public abstract String stringKey();
 
   @Override
   public Object getCacheKey() {
-    return key;
-  }
-
-  @Override
-  public boolean equals(Object obj) {
-    if (this == obj) {
-      return true;
-    }
-
-    if (!(obj instanceof StateNamespaceForTest)) {
-      return false;
-    }
-
-    return Objects.equals(this.key, ((StateNamespaceForTest) obj).key);
-  }
-
-  @Override
-  public int hashCode() {
-    return key.hashCode();
+    return stringKey();
   }
 
   @Override
   public void appendTo(Appendable sb) throws IOException {
-    sb.append(key);
+    sb.append(stringKey());
   }
 }

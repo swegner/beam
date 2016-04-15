@@ -22,6 +22,7 @@ import org.apache.beam.sdk.annotations.Experimental.Kind;
 import org.apache.beam.sdk.util.CloudObject;
 import org.apache.beam.sdk.util.common.ElementByteSizeObserver;
 
+import com.google.auto.value.AutoValue;
 import com.google.common.base.Joiner;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Objects;
@@ -65,19 +66,20 @@ import javax.annotation.Nullable;
  */
 public interface Coder<T> extends Serializable {
   /** The context in which encoding or decoding is being done. */
-  public static class Context {
+  @AutoValue
+  public abstract static class Context {
     /**
      * The outer context: the value being encoded or decoded takes
      * up the remainder of the record/stream contents.
      */
-    public static final Context OUTER = new Context(true);
+    public static final Context OUTER = forWholeStream(true);
 
     /**
      * The nested context: the value being encoded or decoded is
      * (potentially) a part of a larger record/stream contents, and
      * may have other parts encoded or decoded after it.
      */
-    public static final Context NESTED = new Context(false);
+    public static final Context NESTED = forWholeStream(false);
 
     /**
      * Whether the encoded or decoded value fills the remainder of the
@@ -86,10 +88,10 @@ public interface Coder<T> extends Serializable {
      * remaining size of the record/stream contents, and so explicit
      * lengths aren't required.
      */
-    public final boolean isWholeStream;
+    public abstract boolean isWholeStream();
 
-    public Context(boolean isWholeStream) {
-      this.isWholeStream = isWholeStream;
+    public static Context forWholeStream(boolean isWholeStream) {
+      return new AutoValue_Coder_Context(isWholeStream);
     }
 
     public Context nested() {
@@ -97,22 +99,9 @@ public interface Coder<T> extends Serializable {
     }
 
     @Override
-    public boolean equals(Object obj) {
-      if (!(obj instanceof Context)) {
-        return false;
-      }
-      return Objects.equal(isWholeStream, ((Context) obj).isWholeStream);
-    }
-
-    @Override
-    public int hashCode() {
-      return Objects.hashCode(isWholeStream);
-    }
-
-    @Override
     public String toString() {
       return MoreObjects.toStringHelper(Context.class)
-          .addValue(isWholeStream ? "OUTER" : "NESTED").toString();
+          .addValue(isWholeStream() ? "OUTER" : "NESTED").toString();
     }
   }
 

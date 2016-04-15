@@ -25,6 +25,8 @@ import org.apache.beam.sdk.coders.InstantCoder;
 import org.apache.beam.sdk.coders.StandardCoder;
 import org.apache.beam.sdk.util.PropertyNames;
 
+import com.google.auto.value.AutoValue;
+
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
@@ -35,7 +37,6 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Objects;
 
 /**
  * An immutable pair of a value and a timestamp.
@@ -45,40 +46,22 @@ import java.util.Objects;
  *
  * @param <V> the type of the value
  */
-public class TimestampedValue<V> {
+@AutoValue
+public abstract class TimestampedValue<V> {
 
   /**
    * Returns a new {@code TimestampedValue} with the given value and timestamp.
    */
   public static <V> TimestampedValue<V> of(V value, Instant timestamp) {
-    return new TimestampedValue<>(value, timestamp);
+    return new AutoValue_TimestampedValue<>(value, timestamp);
   }
 
-  public V getValue() {
-    return value;
-  }
-
-  public Instant getTimestamp() {
-    return timestamp;
-  }
-
-  @Override
-  public boolean equals(Object other) {
-    if (!(other instanceof TimestampedValue)) {
-      return false;
-    }
-    TimestampedValue<?> that = (TimestampedValue<?>) other;
-    return Objects.equals(value, that.value) && Objects.equals(timestamp, that.timestamp);
-  }
-
-  @Override
-  public int hashCode() {
-    return Objects.hash(value, timestamp);
-  }
+  public abstract V getValue();
+  public abstract Instant getTimestamp();
 
   @Override
   public String toString() {
-    return "TimestampedValue(" + value + ", " + timestamp + ")";
+    return "TimestampedValue(" + getValue() + ", " + getTimestamp() + ")";
   }
 
   /////////////////////////////////////////////////////////////////////////////
@@ -142,15 +125,5 @@ public class TimestampedValue<V> {
     public static <T> List<Object> getInstanceComponents(TimestampedValue<T> exampleValue) {
       return Arrays.<Object>asList(exampleValue.getValue());
     }
-  }
-
-  /////////////////////////////////////////////////////////////////////////////
-
-  private final V value;
-  private final Instant timestamp;
-
-  protected TimestampedValue(V value, Instant timestamp) {
-    this.value = value;
-    this.timestamp = timestamp;
   }
 }

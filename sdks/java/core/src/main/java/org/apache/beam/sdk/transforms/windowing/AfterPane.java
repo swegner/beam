@@ -28,34 +28,34 @@ import org.apache.beam.sdk.util.state.StateMerging;
 import org.apache.beam.sdk.util.state.StateTag;
 import org.apache.beam.sdk.util.state.StateTags;
 
+import com.google.auto.value.AutoValue;
 import org.joda.time.Instant;
 
 import java.util.List;
-import java.util.Objects;
 
 /**
  * {@link Trigger}s that fire based on properties of the elements in the current pane.
  */
 @Experimental(Experimental.Kind.TRIGGER)
-public class AfterPane extends OnceTrigger {
+@AutoValue
+public abstract class AfterPane extends OnceTrigger {
 
 private static final StateTag<Object, AccumulatorCombiningState<Long, long[], Long>>
       ELEMENTS_IN_PANE_TAG =
       StateTags.makeSystemTagInternal(StateTags.combiningValueFromInputInternal(
           "count", VarLongCoder.of(), new Sum.SumLongFn()));
 
-  private final int countElems;
+  abstract int getCountElems();
 
-  private AfterPane(int countElems) {
+  AfterPane() {
     super(null);
-    this.countElems = countElems;
   }
 
   /**
    * Creates a trigger that fires when the pane contains at least {@code countElems} elements.
    */
   public static AfterPane elementCountAtLeast(int countElems) {
-    return new AfterPane(countElems);
+    return new AutoValue_AfterPane(countElems);
   }
 
   @Override
@@ -91,7 +91,7 @@ private static final StateTag<Object, AccumulatorCombiningState<Long, long[], Lo
   @Override
   public boolean shouldFire(Trigger.TriggerContext context) throws Exception {
     long count = context.state().access(ELEMENTS_IN_PANE_TAG).read();
-    return count >= countElems;
+    return count >= getCountElems();
   }
 
   @Override
@@ -116,24 +116,7 @@ private static final StateTag<Object, AccumulatorCombiningState<Long, long[], Lo
 
   @Override
   public String toString() {
-    return "AfterPane.elementCountAtLeast(" + countElems + ")";
-  }
-
-  @Override
-  public boolean equals(Object obj) {
-    if (this == obj) {
-      return true;
-    }
-    if (!(obj instanceof AfterPane)) {
-      return false;
-    }
-    AfterPane that = (AfterPane) obj;
-    return this.countElems == that.countElems;
-  }
-
-  @Override
-  public int hashCode() {
-    return Objects.hash(countElems);
+    return "AfterPane.elementCountAtLeast(" + getCountElems() + ")";
   }
 
   @Override

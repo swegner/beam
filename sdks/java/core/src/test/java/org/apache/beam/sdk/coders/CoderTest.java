@@ -41,12 +41,12 @@ public class CoderTest {
 
   @Test
   public void testContextEqualsAndHashCode() {
-    assertEquals(Context.NESTED, new Context(false));
-    assertEquals(Context.OUTER, new Context(true));
+    assertEquals(Context.NESTED, Context.forWholeStream(false));
+    assertEquals(Context.OUTER, Context.forWholeStream(true));
     assertNotEquals(Context.NESTED, Context.OUTER);
 
-    assertEquals(Context.NESTED.hashCode(), new Context(false).hashCode());
-    assertEquals(Context.OUTER.hashCode(), new Context(true).hashCode());
+    assertEquals(Context.NESTED.hashCode(), Context.forWholeStream(false).hashCode());
+    assertEquals(Context.OUTER.hashCode(), Context.forWholeStream(true).hashCode());
     // Even though this isn't strictly required by the hashCode contract,
     // we still want this to be true.
     assertNotEquals(Context.NESTED.hashCode(), Context.OUTER.hashCode());

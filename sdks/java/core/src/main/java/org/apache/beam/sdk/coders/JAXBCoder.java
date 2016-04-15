@@ -74,7 +74,7 @@ public class JAXBCoder<T> extends AtomicCoder<T> {
         JAXBContext jaxbContext = JAXBContext.newInstance(jaxbClass);
         jaxbMarshaller = jaxbContext.createMarshaller();
       }
-      if (!context.isWholeStream) {
+      if (!context.isWholeStream()) {
         try {
           long size = getEncodedElementByteSize(value, Context.OUTER);
           // record the number of bytes the XML consists of so when reading we only read the encoded
@@ -101,7 +101,7 @@ public class JAXBCoder<T> extends AtomicCoder<T> {
       }
 
       InputStream stream = inStream;
-      if (!context.isWholeStream) {
+      if (!context.isWholeStream()) {
         long limit = VarInt.decodeLong(inStream);
         stream = ByteStreams.limit(inStream, limit);
       }

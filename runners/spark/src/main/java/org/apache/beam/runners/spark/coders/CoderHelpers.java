@@ -49,7 +49,7 @@ public final class CoderHelpers {
   public static <T> byte[] toByteArray(T value, Coder<T> coder) {
     ByteArrayOutputStream baos = new ByteArrayOutputStream();
     try {
-      coder.encode(value, baos, new Coder.Context(true));
+      coder.encode(value, baos, Coder.Context.forWholeStream(true));
     } catch (IOException e) {
       throw new IllegalStateException("Error encoding value: " + value, e);
     }
@@ -83,7 +83,7 @@ public final class CoderHelpers {
   public static <T> T fromByteArray(byte[] serialized, Coder<T> coder) {
     ByteArrayInputStream bais = new ByteArrayInputStream(serialized);
     try {
-      return coder.decode(bais, new Coder.Context(true));
+      return coder.decode(bais, Coder.Context.forWholeStream(true));
     } catch (IOException e) {
       throw new IllegalStateException("Error decoding bytes for coder: " + coder, e);
     }

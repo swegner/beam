@@ -22,13 +22,14 @@ import org.apache.beam.sdk.annotations.Experimental.Kind;
 import org.apache.beam.sdk.coders.Coder;
 import org.apache.beam.sdk.transforms.display.DisplayData;
 
+import com.google.auto.value.AutoValue;
+
 import org.joda.time.Duration;
 import org.joda.time.Instant;
 
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
-import java.util.Objects;
 
 /**
  * A {@link WindowFn} that windows values into possibly overlapping fixed-size
@@ -42,23 +43,25 @@ import java.util.Objects;
  *   Window.<Integer>into(SlidingWindows.of(Duration.standardMinutes(10))));
  * } </pre>
  */
-public class SlidingWindows extends NonMergingWindowFn<Object, IntervalWindow> {
+@AutoValue
+public abstract class SlidingWindows extends NonMergingWindowFn<Object, IntervalWindow> {
 
   /**
    * Amount of time between generated windows.
    */
-  private final Duration period;
+  public abstract Duration getPeriod();
 
   /**
    * Size of the generated windows.
    */
-  private final Duration size;
+  public abstract Duration getSize();
 
   /**
    * Offset of the generated windows.
    * Windows start at time N * start + offset, where 0 is the epoch.
    */
-  private final Duration offset;
+  public abstract Duration getOffset();
+
 
   /**
    * Assigns timestamps into half-open intervals of the form
@@ -69,7 +72,18 @@ public class SlidingWindows extends NonMergingWindowFn<Object, IntervalWindow> {
    * specifying a size of 5 seconds will result in a default period of 1 second.
    */
   public static SlidingWindows of(Duration size) {
-    return new SlidingWindows(getDefaultPeriod(size), size, Duration.ZERO);
+    return SlidingWindows.of(getDefaultPeriod(size), size, Duration.ZERO);
+  }
+
+  private static SlidingWindows of(Duration period, Duration size, Duration offset) {
+    if (offset.isShorterThan(Duration.ZERO)
+        || !offset.isShorterThan(period)
+        || !size.isLongerThan(Duration.ZERO)) {
+      throw new IllegalArgumentException(
+          "SlidingWindows WindowingStrategies must have 0 <= offset < period and 0 < size");
+    }
+
+    return new AutoValue_SlidingWindows(period, size, offset);
   }
 
   /**
@@ -78,7 +92,7 @@ public class SlidingWindows extends NonMergingWindowFn<Object, IntervalWindow> {
    * [N * period, N * period + size), where 0 is the epoch.
    */
   public SlidingWindows every(Duration period) {
-    return new SlidingWindows(period, size, offset);
+    return SlidingWindows.of(period, getSize(), getOffset());
   }
 
   /**
@@ -88,19 +102,7 @@ public class SlidingWindows extends NonMergingWindowFn<Object, IntervalWindow> {
    * @throws IllegalArgumentException if offset is not in [0, period)
    */
   public SlidingWindows withOffset(Duration offset) {
-    return new SlidingWindows(period, size, offset);
-  }
-
-  private SlidingWindows(Duration period, Duration size, Duration offset) {
-    if (offset.isShorterThan(Duration.ZERO)
-        || !offset.isShorterThan(period)
-        || !size.isLongerThan(Duration.ZERO)) {
-      throw new IllegalArgumentException(
-          "SlidingWindows WindowingStrategies must have 0 <= offset < period and 0 < size");
-    }
-    this.period = period;
-    this.size = size;
-    this.offset = offset;
+    return SlidingWindows.of(getPeriod(), getSize(), offset);
   }
 
   @Override
@@ -111,13 +113,13 @@ public class SlidingWindows extends NonMergingWindowFn<Object, IntervalWindow> {
   @Override
   public Collection<IntervalWindow> assignWindows(AssignContext c) {
     List<IntervalWindow> windows =
-        new ArrayList<>((int) (size.getMillis() / period.getMillis()));
+        new ArrayList<>((int) (getSize().getMillis() / getPeriod().getMillis()));
     Instant timestamp = c.timestamp();
     long lastStart = lastStartFor(timestamp);
     for (long start = lastStart;
-         start > timestamp.minus(size).getMillis();
-         start -= period.getMillis()) {
-      windows.add(new IntervalWindow(new Instant(start), size));
+         start > timestamp.minus(getSize()).getMillis();
+         start -= getPeriod().getMillis()) {
+      windows.add(new IntervalWindow(new Instant(start), getSize()));
     }
     return windows;
   }
@@ -131,8 +133,8 @@ public class SlidingWindows extends NonMergingWindowFn<Object, IntervalWindow> {
       throw new IllegalArgumentException(
           "Attempted to get side input window for GlobalWindow from non-global WindowFn");
     }
-    long lastStart = lastStartFor(window.maxTimestamp().minus(size));
-    return new IntervalWindow(new Instant(lastStart + period.getMillis()), size);
+    long lastStart = lastStartFor(window.maxTimestamp().minus(getSize()));
+    return new IntervalWindow(new Instant(lastStart + getPeriod().getMillis()), getSize());
   }
 
   @Override
@@ -143,9 +145,9 @@ public class SlidingWindows extends NonMergingWindowFn<Object, IntervalWindow> {
   @Override
   public void populateDisplayData(DisplayData.Builder builder) {
     builder
-        .add("size", size)
-        .add("period", period)
-        .add("offset", offset);
+        .add("size", getSize())
+        .add("period", getPeriod())
+        .add("offset", getOffset());
   }
 
   /**
@@ -153,7 +155,7 @@ public class SlidingWindows extends NonMergingWindowFn<Object, IntervalWindow> {
    */
   private long lastStartFor(Instant timestamp) {
     return timestamp.getMillis()
-        - timestamp.plus(period).minus(offset).getMillis() % period.getMillis();
+        - timestamp.plus(getPeriod()).minus(getOffset()).getMillis() % getPeriod().getMillis();
   }
 
   static Duration getDefaultPeriod(Duration size) {
@@ -169,18 +171,6 @@ public class SlidingWindows extends NonMergingWindowFn<Object, IntervalWindow> {
     return Duration.millis(1);
   }
 
-  public Duration getPeriod() {
-    return period;
-  }
-
-  public Duration getSize() {
-    return size;
-  }
-
-  public Duration getOffset() {
-    return offset;
-  }
-
   /**
    * Ensures that later sliding windows have an output time that is past the end of earlier windows.
    *
@@ -193,7 +183,7 @@ public class SlidingWindows extends NonMergingWindowFn<Object, IntervalWindow> {
     return new OutputTimeFn.Defaults<BoundedWindow>() {
       @Override
       public Instant assignOutputTime(Instant inputTimestamp, BoundedWindow window) {
-        Instant startOfLastSegment = window.maxTimestamp().minus(period);
+        Instant startOfLastSegment = window.maxTimestamp().minus(getPeriod());
         return startOfLastSegment.isBefore(inputTimestamp)
             ? inputTimestamp
                 : startOfLastSegment.plus(1);
@@ -204,21 +194,5 @@ public class SlidingWindows extends NonMergingWindowFn<Object, IntervalWindow> {
         return true;
       }
     };
-  }
-
-  @Override
-  public boolean equals(Object object) {
-    if (!(object instanceof SlidingWindows)) {
-      return false;
-    }
-    SlidingWindows other = (SlidingWindows) object;
-    return getOffset().equals(other.getOffset())
-        && getSize().equals(other.getSize())
-        && getPeriod().equals(other.getPeriod());
-  }
-
-  @Override
-  public int hashCode() {
-    return Objects.hash(size, offset, period);
   }
 }

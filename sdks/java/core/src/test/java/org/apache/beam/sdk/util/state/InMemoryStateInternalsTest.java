@@ -42,9 +42,9 @@ import java.util.Arrays;
 @RunWith(JUnit4.class)
 public class InMemoryStateInternalsTest {
   private static final BoundedWindow WINDOW_1 = new IntervalWindow(new Instant(0), new Instant(10));
-  private static final StateNamespace NAMESPACE_1 = new StateNamespaceForTest("ns1");
-  private static final StateNamespace NAMESPACE_2 = new StateNamespaceForTest("ns2");
-  private static final StateNamespace NAMESPACE_3 = new StateNamespaceForTest("ns3");
+  private static final StateNamespace NAMESPACE_1 = StateNamespaceForTest.of("ns1");
+  private static final StateNamespace NAMESPACE_2 = StateNamespaceForTest.of("ns2");
+  private static final StateNamespace NAMESPACE_3 = StateNamespaceForTest.of("ns3");
 
   private static final StateTag<Object, ValueState<String>> STRING_VALUE_ADDR =
       StateTags.value("stringValue", StringUtf8Coder.of());

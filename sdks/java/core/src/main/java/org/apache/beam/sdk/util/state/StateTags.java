@@ -28,6 +28,7 @@ import org.apache.beam.sdk.transforms.CombineWithContext.KeyedCombineFnWithConte
 import org.apache.beam.sdk.transforms.windowing.BoundedWindow;
 import org.apache.beam.sdk.transforms.windowing.OutputTimeFn;
 
+import com.google.auto.value.AutoValue;
 import com.google.common.base.MoreObjects;
 
 import java.io.IOException;
@@ -46,7 +47,7 @@ public class StateTags {
     STANDARD_REGISTRY.registerStandardCoders();
   }
 
-  private enum StateKind {
+  enum StateKind {
     SYSTEM('s'),
     USER('u');
 
@@ -67,7 +68,7 @@ public class StateTags {
    * Create a simple state tag for values of type {@code T}.
    */
   public static <T> StateTag<Object, ValueState<T>> value(String id, Coder<T> valueCoder) {
-    return new ValueStateTag<>(new StructuredId(id), valueCoder);
+    return new ValueStateTag<>(StructuredId.of(id), valueCoder);
   }
 
   /**
@@ -106,7 +107,7 @@ public class StateTags {
           Coder<AccumT> accumCoder,
           KeyedCombineFnWithContext<K, InputT, AccumT, OutputT> combineFn) {
     return new KeyedCombiningValueWithContextStateTag<K, InputT, AccumT, OutputT>(
-        new StructuredId(id),
+        StructuredId.of(id),
         accumCoder,
         combineFn);
   }
@@ -138,7 +139,7 @@ public class StateTags {
       String id, Coder<AccumT> accumCoder, CombineFn<InputT, AccumT, OutputT> combineFn) {
     return
         new CombiningValueStateTag<InputT, AccumT, OutputT>(
-            new StructuredId(id), accumCoder, combineFn);
+            StructuredId.of(id), accumCoder, combineFn);
   }
 
   private static <K, InputT, AccumT, OutputT>
@@ -147,7 +148,7 @@ public class StateTags {
           Coder<AccumT> accumCoder,
           KeyedCombineFn<K, InputT, AccumT, OutputT> combineFn) {
     return new KeyedCombiningValueStateTag<K, InputT, AccumT, OutputT>(
-        new StructuredId(id), accumCoder, combineFn);
+        StructuredId.of(id), accumCoder, combineFn);
   }
 
   /**
@@ -155,7 +156,7 @@ public class StateTags {
    * occasionally retrieving all the values that have been added.
    */
   public static <T> StateTag<Object, BagState<T>> bag(String id, Coder<T> elemCoder) {
-    return new BagStateTag<T>(new StructuredId(id), elemCoder);
+    return new BagStateTag<T>(StructuredId.of(id), elemCoder);
   }
 
   /**
@@ -163,7 +164,7 @@ public class StateTags {
    */
   public static <W extends BoundedWindow> StateTag<Object, WatermarkHoldState<W>>
       watermarkStateInternal(String id, OutputTimeFn<? super W> outputTimeFn) {
-    return new WatermarkStateTagInternal<W>(new StructuredId(id), outputTimeFn);
+    return new WatermarkStateTagInternal<W>(StructuredId.of(id), outputTimeFn);
   }
 
   /**
@@ -201,57 +202,33 @@ public class StateTags {
     }
   }
 
-  private static class StructuredId implements Serializable {
-    private final StateKind kind;
-    private final String rawId;
-
-    private StructuredId(String rawId) {
-      this(StateKind.USER, rawId);
+  @AutoValue
+  abstract static class StructuredId implements Serializable {
+    private static StructuredId of(String rawId) {
+      return of(StateKind.USER, rawId);
     }
 
-    private StructuredId(StateKind kind, String rawId) {
-      this.kind = kind;
-      this.rawId = rawId;
+    private static StructuredId of(StateKind kind, String rawId) {
+      return new AutoValue_StateTags_StructuredId(kind, rawId);
     }
 
     public StructuredId asKind(StateKind kind) {
-      return new StructuredId(kind, rawId);
+      return StructuredId.of(kind, getRawId());
     }
 
     public void appendTo(Appendable sb) throws IOException {
-      sb.append(kind.prefix).append(rawId);
+      sb.append(getKind().prefix).append(getRawId());
     }
 
-    public String getRawId() {
-      return rawId;
-    }
+    abstract StateKind getKind();
+    public abstract String getRawId();
 
     @Override
     public String toString() {
       return MoreObjects.toStringHelper(getClass())
-          .add("id", rawId)
-          .add("kind", kind)
+          .add("id", getRawId())
+          .add("kind", getKind())
           .toString();
-    }
-
-    @Override
-    public boolean equals(Object obj) {
-      if (obj == this) {
-        return true;
-      }
-
-      if (!(obj instanceof StructuredId)) {
-        return false;
-      }
-
-      StructuredId that = (StructuredId) obj;
-      return Objects.equals(this.kind, that.kind)
-          && Objects.equals(this.rawId, that.rawId);
-    }
-
-    @Override
-    public int hashCode() {
-      return Objects.hash(kind, rawId);
     }
   }
 
@@ -293,7 +270,7 @@ public class StateTags {
    *
    * @param <T> the type of value being stored
    */
-  private static class ValueStateTag<T> extends StateTagBase<Object, ValueState<T>>
+  static class ValueStateTag<T> extends StateTagBase<Object, ValueState<T>>
       implements StateTag<Object, ValueState<T>> {
 
     private final Coder<T> coder;

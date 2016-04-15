@@ -30,9 +30,9 @@ import org.apache.beam.sdk.util.Structs;
 import org.apache.beam.sdk.values.PCollection;
 import org.apache.beam.sdk.values.TypeDescriptor;
 
+import com.google.auto.value.AutoValue;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
 import com.google.protobuf.ExtensionRegistry;
 import com.google.protobuf.Message;
 import com.google.protobuf.Parser;
@@ -48,7 +48,6 @@ import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Objects;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
@@ -114,8 +113,8 @@ import javax.annotation.Nullable;
  *
  * @param <T> the Protocol Buffers {@link Message} handled by this {@link Coder}.
  */
-public class ProtoCoder<T extends Message> extends AtomicCoder<T> {
-
+@AutoValue
+public abstract class ProtoCoder<T extends Message> extends AtomicCoder<T> {
   /**
    * A {@link CoderProvider} that returns a {@link ProtoCoder} with an empty
    * {@link ExtensionRegistry}.
@@ -128,7 +127,7 @@ public class ProtoCoder<T extends Message> extends AtomicCoder<T> {
    * Returns a {@link ProtoCoder} for the given Protocol Buffers {@link Message}.
    */
   public static <T extends Message> ProtoCoder<T> of(Class<T> protoMessageClass) {
-    return new ProtoCoder<T>(protoMessageClass, ImmutableSet.<Class<?>>of());
+    return new AutoValue_ProtoCoder<>(protoMessageClass, ImmutableSet.<Class<?>>of());
   }
 
   /**
@@ -139,6 +138,22 @@ public class ProtoCoder<T extends Message> extends AtomicCoder<T> {
     @SuppressWarnings("unchecked")
     Class<T> protoMessageClass = (Class<T>) protoMessageType.getRawType();
     return of(protoMessageClass);
+  }
+
+  /**
+   * Returns the Protocol Buffers {@link Message} type this {@link ProtoCoder} supports.
+   */
+  public abstract Class<T> getMessageType();
+
+  /**
+   * All extension host classes included in this {@link ProtoCoder}. The extensions from these
+   * classes will be included in the {@link ExtensionRegistry} used during encoding and decoding.
+   */
+  abstract Set<Class<?>> getExtensionHostClasses();
+
+  private static <T extends Message> ProtoCoder<T> of(
+      Class<T> protoMessageClass, Set<Class<?>> extensionHostClasses) {
+    return new AutoValue_ProtoCoder<>(protoMessageClass, extensionHostClasses);
   }
 
   /**
@@ -166,10 +181,10 @@ public class ProtoCoder<T extends Message> extends AtomicCoder<T> {
       }
     }
 
-    return new ProtoCoder<T>(
-        protoMessageClass,
+    return ProtoCoder.of(
+        getMessageType(),
         new ImmutableSet.Builder<Class<?>>()
-            .addAll(extensionHostClasses)
+            .addAll(getExtensionHostClasses())
             .addAll(moreExtensionHosts)
             .build());
   }
@@ -186,9 +201,9 @@ public class ProtoCoder<T extends Message> extends AtomicCoder<T> {
   @Override
   public void encode(T value, OutputStream outStream, Context context) throws IOException {
     if (value == null) {
-      throw new CoderException("cannot encode a null " + protoMessageClass.getSimpleName());
+      throw new CoderException("cannot encode a null " + getMessageType().getSimpleName());
     }
-    if (context.isWholeStream) {
+    if (context.isWholeStream()) {
       value.writeTo(outStream);
     } else {
       value.writeDelimitedTo(outStream);
@@ -197,30 +212,11 @@ public class ProtoCoder<T extends Message> extends AtomicCoder<T> {
 
   @Override
   public T decode(InputStream inStream, Context context) throws IOException {
-    if (context.isWholeStream) {
+    if (context.isWholeStream()) {
       return getParser().parseFrom(inStream, getExtensionRegistry());
     } else {
       return getParser().parseDelimitedFrom(inStream, getExtensionRegistry());
     }
-  }
-
-  @Override
-  public boolean equals(Object other) {
-    if (this == other) {
-      return true;
-    }
-    if (!(other instanceof ProtoCoder)) {
-      return false;
-    }
-    ProtoCoder<?> otherCoder = (ProtoCoder<?>) other;
-    return protoMessageClass.equals(otherCoder.protoMessageClass)
-        && Sets.newHashSet(extensionHostClasses)
-            .equals(Sets.newHashSet(otherCoder.extensionHostClasses));
-  }
-
-  @Override
-  public int hashCode() {
-    return Objects.hash(protoMessageClass, extensionHostClasses);
   }
 
   /**
@@ -254,19 +250,12 @@ public class ProtoCoder<T extends Message> extends AtomicCoder<T> {
    */
   @Override
   public String getEncodingId() {
-    return protoMessageClass.getName() + getSortedExtensionClasses().toString();
+    return getMessageType().getName() + getSortedExtensionClasses().toString();
   }
 
   @Override
   public void verifyDeterministic() throws NonDeterministicException {
     ProtobufUtil.verifyDeterministic(this);
-  }
-
-  /**
-   * Returns the Protocol Buffers {@link Message} type this {@link ProtoCoder} supports.
-   */
-  public Class<T> getMessageType() {
-    return protoMessageClass;
   }
 
   /**
@@ -276,7 +265,7 @@ public class ProtoCoder<T extends Message> extends AtomicCoder<T> {
   public ExtensionRegistry getExtensionRegistry() {
     if (memoizedExtensionRegistry == null) {
       ExtensionRegistry registry = ExtensionRegistry.newInstance();
-      for (Class<?> extensionHost : extensionHostClasses) {
+      for (Class<?> extensionHost : getExtensionHostClasses()) {
         try {
           extensionHost
               .getDeclaredMethod("registerAllExtensions", ExtensionRegistry.class)
@@ -293,15 +282,6 @@ public class ProtoCoder<T extends Message> extends AtomicCoder<T> {
   ////////////////////////////////////////////////////////////////////////////////////
   // Private implementation details below.
 
-  /** The {@link Message} type to be coded. */
-  private final Class<T> protoMessageClass;
-
-  /**
-   * All extension host classes included in this {@link ProtoCoder}. The extensions from these
-   * classes will be included in the {@link ExtensionRegistry} used during encoding and decoding.
-   */
-  private final Set<Class<?>> extensionHostClasses;
-
   // Constants used to serialize and deserialize
   private static final String PROTO_MESSAGE_CLASS = "proto_message_class";
   private static final String PROTO_EXTENSION_HOSTS = "proto_extension_hosts";
@@ -309,12 +289,6 @@ public class ProtoCoder<T extends Message> extends AtomicCoder<T> {
   // Transient fields that are lazy initialized and then memoized.
   private transient ExtensionRegistry memoizedExtensionRegistry;
   private transient Parser<T> memoizedParser;
-
-  /** Private constructor. */
-  private ProtoCoder(Class<T> protoMessageClass, Set<Class<?>> extensionHostClasses) {
-    this.protoMessageClass = protoMessageClass;
-    this.extensionHostClasses = extensionHostClasses;
-  }
 
   /**
    * @deprecated For JSON deserialization only.
@@ -343,7 +317,7 @@ public class ProtoCoder<T extends Message> extends AtomicCoder<T> {
   @Override
   public CloudObject asCloudObject() {
     CloudObject result = super.asCloudObject();
-    Structs.addString(result, PROTO_MESSAGE_CLASS, protoMessageClass.getName());
+    Structs.addString(result, PROTO_MESSAGE_CLASS, getMessageType().getName());
     List<CloudObject> extensionHostClassNames = Lists.newArrayList();
     for (String className : getSortedExtensionClasses()) {
       extensionHostClassNames.add(CloudObject.forString(className));
@@ -357,7 +331,7 @@ public class ProtoCoder<T extends Message> extends AtomicCoder<T> {
     if (memoizedParser == null) {
       try {
         @SuppressWarnings("unchecked")
-        T protoMessageInstance = (T) protoMessageClass.getMethod("getDefaultInstance").invoke(null);
+        T protoMessageInstance = (T) getMessageType().getMethod("getDefaultInstance").invoke(null);
         @SuppressWarnings("unchecked")
         Parser<T> tParser = (Parser<T>) protoMessageInstance.getParserForType();
         memoizedParser = tParser;
@@ -399,7 +373,7 @@ public class ProtoCoder<T extends Message> extends AtomicCoder<T> {
 
   private SortedSet<String> getSortedExtensionClasses() {
     SortedSet<String> ret = new TreeSet<>();
-    for (Class<?> clazz : extensionHostClasses) {
+    for (Class<?> clazz : getExtensionHostClasses()) {
       ret.add(clazz.getName());
     }
     return ret;

@@ -27,12 +27,12 @@ import org.apache.beam.sdk.transforms.windowing.Trigger;
 import org.apache.beam.sdk.transforms.windowing.Window.ClosingBehavior;
 import org.apache.beam.sdk.transforms.windowing.WindowFn;
 
+import com.google.auto.value.AutoValue;
 import com.google.common.base.MoreObjects;
 
 import org.joda.time.Duration;
 
 import java.io.Serializable;
-import java.util.Objects;
 
 /**
  * A {@code WindowingStrategy} describes the windowing behavior for a specific collection of values.
@@ -43,7 +43,8 @@ import java.util.Objects;
  * @param <W> {@link BoundedWindow} subclass used to represent the
  *            windows used by this {@code WindowingStrategy}
  */
-public class WindowingStrategy<T, W extends BoundedWindow> implements Serializable {
+@AutoValue
+public abstract class WindowingStrategy<T, W extends BoundedWindow> implements Serializable {
 
   /**
    * The accumulation modes that can be used with windowing.
@@ -56,34 +57,24 @@ public class WindowingStrategy<T, W extends BoundedWindow> implements Serializab
   private static final Duration DEFAULT_ALLOWED_LATENESS = Duration.ZERO;
   private static final WindowingStrategy<Object, GlobalWindow> DEFAULT = of(new GlobalWindows());
 
-  private final WindowFn<T, W> windowFn;
-  private final OutputTimeFn<? super W> outputTimeFn;
-  private final ExecutableTrigger trigger;
-  private final AccumulationMode mode;
-  private final Duration allowedLateness;
-  private final ClosingBehavior closingBehavior;
-  private final boolean triggerSpecified;
-  private final boolean modeSpecified;
-  private final boolean allowedLatenessSpecified;
-  private final boolean outputTimeFnSpecified;
-
-  private WindowingStrategy(
+  private static <T, W extends BoundedWindow> WindowingStrategy<T, W> of(
       WindowFn<T, W> windowFn,
       ExecutableTrigger trigger, boolean triggerSpecified,
       AccumulationMode mode, boolean modeSpecified,
       Duration allowedLateness, boolean allowedLatenessSpecified,
       OutputTimeFn<? super W> outputTimeFn, boolean outputTimeFnSpecified,
       ClosingBehavior closingBehavior) {
-    this.windowFn = windowFn;
-    this.trigger = trigger;
-    this.triggerSpecified = triggerSpecified;
-    this.mode = mode;
-    this.modeSpecified = modeSpecified;
-    this.allowedLateness = allowedLateness;
-    this.allowedLatenessSpecified = allowedLatenessSpecified;
-    this.closingBehavior = closingBehavior;
-    this.outputTimeFn = outputTimeFn;
-    this.outputTimeFnSpecified = outputTimeFnSpecified;
+    return new AutoValue_WindowingStrategy<>(
+        windowFn,
+        trigger,
+        triggerSpecified,
+        allowedLateness,
+        allowedLatenessSpecified,
+        mode,
+        modeSpecified,
+        outputTimeFn,
+        outputTimeFnSpecified,
+        closingBehavior);
   }
 
   /**
@@ -93,9 +84,8 @@ public class WindowingStrategy<T, W extends BoundedWindow> implements Serializab
     return DEFAULT;
   }
 
-  public static <T, W extends BoundedWindow> WindowingStrategy<T, W> of(
-      WindowFn<T, W> windowFn) {
-    return new WindowingStrategy<>(windowFn,
+  public static <T, W extends BoundedWindow> WindowingStrategy<T, W> of(WindowFn<T, W> windowFn) {
+    return WindowingStrategy.of(windowFn,
         ExecutableTrigger.create(DefaultTrigger.<W>of()), false,
         AccumulationMode.DISCARDING_FIRED_PANES, false,
         DEFAULT_ALLOWED_LATENESS, false,
@@ -103,58 +93,29 @@ public class WindowingStrategy<T, W extends BoundedWindow> implements Serializab
         ClosingBehavior.FIRE_IF_NON_EMPTY);
   }
 
-  public WindowFn<T, W> getWindowFn() {
-    return windowFn;
-  }
-
-  public ExecutableTrigger getTrigger() {
-    return trigger;
-  }
-
-  public boolean isTriggerSpecified() {
-    return triggerSpecified;
-  }
-
-  public Duration getAllowedLateness() {
-    return allowedLateness;
-  }
-
-  public boolean isAllowedLatenessSpecified() {
-    return allowedLatenessSpecified;
-  }
-
-  public AccumulationMode getMode() {
-    return mode;
-  }
-
-  public boolean isModeSpecified() {
-    return modeSpecified;
-  }
-
-  public ClosingBehavior getClosingBehavior() {
-    return closingBehavior;
-  }
-
-  public OutputTimeFn<? super W> getOutputTimeFn() {
-    return outputTimeFn;
-  }
-
-  public boolean isOutputTimeFnSpecified() {
-    return outputTimeFnSpecified;
-  }
+  public abstract WindowFn<T, W> getWindowFn();
+  public abstract ExecutableTrigger getTrigger();
+  public abstract boolean isTriggerSpecified();
+  public abstract Duration getAllowedLateness();
+  public abstract boolean isAllowedLatenessSpecified();
+  public abstract AccumulationMode getMode();
+  public abstract boolean isModeSpecified();
+  public abstract OutputTimeFn<? super W> getOutputTimeFn();
+  public abstract boolean isOutputTimeFnSpecified();
+  public abstract ClosingBehavior getClosingBehavior();
 
   /**
    * Returns a {@link WindowingStrategy} identical to {@code this} but with the trigger set to
    * {@code wildcardTrigger}.
    */
   public WindowingStrategy<T, W> withTrigger(Trigger trigger) {
-    return new WindowingStrategy<T, W>(
-        windowFn,
+    return WindowingStrategy.of(
+        getWindowFn(),
         ExecutableTrigger.create(trigger), true,
-        mode, modeSpecified,
-        allowedLateness, allowedLatenessSpecified,
-        outputTimeFn, outputTimeFnSpecified,
-        closingBehavior);
+        getMode(), isModeSpecified(),
+        getAllowedLateness(), isAllowedLatenessSpecified(),
+        getOutputTimeFn(), isOutputTimeFnSpecified(),
+        getClosingBehavior());
   }
 
   /**
@@ -162,13 +123,13 @@ public class WindowingStrategy<T, W extends BoundedWindow> implements Serializab
    * set to {@code mode}.
    */
   public WindowingStrategy<T, W> withMode(AccumulationMode mode) {
-    return new WindowingStrategy<T, W>(
-        windowFn,
-        trigger, triggerSpecified,
+    return WindowingStrategy.of(
+        getWindowFn(),
+        getTrigger(), isTriggerSpecified(),
         mode, true,
-        allowedLateness, allowedLatenessSpecified,
-        outputTimeFn, outputTimeFnSpecified,
-        closingBehavior);
+        getAllowedLateness(), isAllowedLatenessSpecified(),
+        getOutputTimeFn(), isOutputTimeFnSpecified(),
+        getClosingBehavior());
   }
 
   /**
@@ -182,15 +143,15 @@ public class WindowingStrategy<T, W extends BoundedWindow> implements Serializab
     // The onus of type correctness falls on the callee.
     @SuppressWarnings("unchecked")
     OutputTimeFn<? super W> newOutputTimeFn = (OutputTimeFn<? super W>)
-        (outputTimeFnSpecified ? outputTimeFn : typedWindowFn.getOutputTimeFn());
+        (isOutputTimeFnSpecified() ? getOutputTimeFn() : typedWindowFn.getOutputTimeFn());
 
-    return new WindowingStrategy<T, W>(
+    return WindowingStrategy.of(
         typedWindowFn,
-        trigger, triggerSpecified,
-        mode, modeSpecified,
-        allowedLateness, allowedLatenessSpecified,
-        newOutputTimeFn, outputTimeFnSpecified,
-        closingBehavior);
+        getTrigger(), isTriggerSpecified(),
+        getMode(), isModeSpecified(),
+        getAllowedLateness(), isAllowedLatenessSpecified(),
+        newOutputTimeFn, isOutputTimeFnSpecified(),
+        getClosingBehavior());
   }
 
   /**
@@ -198,22 +159,22 @@ public class WindowingStrategy<T, W extends BoundedWindow> implements Serializab
    * set to {@code allowedLateness}.
    */
   public WindowingStrategy<T, W> withAllowedLateness(Duration allowedLateness) {
-    return new WindowingStrategy<T, W>(
-        windowFn,
-        trigger, triggerSpecified,
-        mode, modeSpecified,
+    return WindowingStrategy.of(
+        getWindowFn(),
+        getTrigger(), isTriggerSpecified(),
+        getMode(), isModeSpecified(),
         allowedLateness, true,
-        outputTimeFn, outputTimeFnSpecified,
-        closingBehavior);
+        getOutputTimeFn(), isOutputTimeFnSpecified(),
+        getClosingBehavior());
   }
 
   public WindowingStrategy<T, W> withClosingBehavior(ClosingBehavior closingBehavior) {
-    return new WindowingStrategy<T, W>(
-        windowFn,
-        trigger, triggerSpecified,
-        mode, modeSpecified,
-        allowedLateness, allowedLatenessSpecified,
-        outputTimeFn, outputTimeFnSpecified,
+    return WindowingStrategy.of(
+        getWindowFn(),
+        getTrigger(), isTriggerSpecified(),
+        getMode(), isModeSpecified(),
+        getAllowedLateness(), isAllowedLatenessSpecified(),
+        getOutputTimeFn(), isOutputTimeFnSpecified(),
         closingBehavior);
   }
 
@@ -223,46 +184,23 @@ public class WindowingStrategy<T, W extends BoundedWindow> implements Serializab
     @SuppressWarnings("unchecked")
     OutputTimeFn<? super W> typedOutputTimeFn = (OutputTimeFn<? super W>) outputTimeFn;
 
-    return new WindowingStrategy<T, W>(
-        windowFn,
-        trigger, triggerSpecified,
-        mode, modeSpecified,
-        allowedLateness, allowedLatenessSpecified,
+    return WindowingStrategy.of(
+        getWindowFn(),
+        getTrigger(), isTriggerSpecified(),
+        getMode(), isModeSpecified(),
+        getAllowedLateness(), isAllowedLatenessSpecified(),
         typedOutputTimeFn, true,
-        closingBehavior);
+        getClosingBehavior());
   }
 
   @Override
   public String toString() {
     return MoreObjects.toStringHelper(this)
-        .add("windowFn", windowFn)
-        .add("allowedLateness", allowedLateness)
-        .add("trigger", trigger)
-        .add("accumulationMode", mode)
-        .add("outputTimeFn", outputTimeFn)
+        .add("windowFn", getWindowFn())
+        .add("allowedLateness", getAllowedLateness())
+        .add("trigger", getTrigger())
+        .add("accumulationMode", getMode())
+        .add("outputTimeFn", getOutputTimeFn())
         .toString();
-  }
-
-  @Override
-  public boolean equals(Object object) {
-    if (!(object instanceof WindowingStrategy)) {
-      return false;
-    }
-    WindowingStrategy<?, ?> other = (WindowingStrategy<?, ?>) object;
-    return
-        isTriggerSpecified() == other.isTriggerSpecified()
-        && isAllowedLatenessSpecified() == other.isAllowedLatenessSpecified()
-        && isModeSpecified() == other.isModeSpecified()
-        && getMode().equals(other.getMode())
-        && getAllowedLateness().equals(other.getAllowedLateness())
-        && getClosingBehavior().equals(other.getClosingBehavior())
-        && getTrigger().equals(other.getTrigger())
-        && getWindowFn().equals(other.getWindowFn());
-  }
-
-  @Override
-  public int hashCode() {
-    return Objects.hash(triggerSpecified, allowedLatenessSpecified, modeSpecified,
-        windowFn, trigger, mode, allowedLateness, closingBehavior);
   }
 }

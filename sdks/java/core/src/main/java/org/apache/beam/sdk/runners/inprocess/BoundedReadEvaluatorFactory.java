@@ -83,7 +83,7 @@ final class BoundedReadEvaluatorFactory implements TransformEvaluatorFactory {
       final InProcessEvaluationContext evaluationContext) {
     // Key by the application and the context the evaluation is occurring in (which call to
     // Pipeline#run).
-    EvaluatorKey key = new EvaluatorKey(transform, evaluationContext);
+    EvaluatorKey key = EvaluatorKey.of(transform, evaluationContext);
     Queue<BoundedReadEvaluator<OutputT>> evaluatorQueue =
         (Queue<BoundedReadEvaluator<OutputT>>) sourceEvaluators.get(key);
     if (evaluatorQueue == null) {

@@ -77,7 +77,7 @@ public class StringUtf8Coder extends AtomicCoder<String> {
     if (value == null) {
       throw new CoderException("cannot encode a null String");
     }
-    if (context.isWholeStream) {
+    if (context.isWholeStream()) {
       byte[] bytes = value.getBytes(StandardCharsets.UTF_8);
       if (outStream instanceof ExposedByteArrayOutputStream) {
         ((ExposedByteArrayOutputStream) outStream).writeAndOwn(bytes);
@@ -92,7 +92,7 @@ public class StringUtf8Coder extends AtomicCoder<String> {
   @Override
   public String decode(InputStream inStream, Context context)
       throws IOException {
-    if (context.isWholeStream) {
+    if (context.isWholeStream()) {
       byte[] bytes = StreamUtils.getBytes(inStream);
       return new String(bytes, StandardCharsets.UTF_8);
     } else {
@@ -128,7 +128,7 @@ public class StringUtf8Coder extends AtomicCoder<String> {
     if (value == null) {
       throw new CoderException("cannot encode a null String");
     }
-    if (context.isWholeStream) {
+    if (context.isWholeStream()) {
       return Utf8.encodedLength(value);
     } else {
       CountingOutputStream countingStream =

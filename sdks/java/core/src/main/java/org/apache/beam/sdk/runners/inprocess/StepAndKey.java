@@ -19,53 +19,21 @@ package org.apache.beam.sdk.runners.inprocess;
 
 import org.apache.beam.sdk.transforms.AppliedPTransform;
 
-import com.google.common.base.MoreObjects;
-
-import java.util.Objects;
+import com.google.auto.value.AutoValue;
 
 /**
  * A (Step, Key) pair. This is useful as a map key or cache key for things that are available
  * per-step in a keyed manner (e.g. State).
  */
-final class StepAndKey {
-  private final AppliedPTransform<?, ?, ?> step;
-  private final Object key;
+@AutoValue
+abstract class StepAndKey {
+  abstract AppliedPTransform<?, ?, ?> getStep();
+  abstract Object getKey();
 
   /**
    * Create a new {@link StepAndKey} with the provided step and key.
    */
   public static StepAndKey of(AppliedPTransform<?, ?, ?> step, Object key) {
-    return new StepAndKey(step, key);
-  }
-
-  private StepAndKey(AppliedPTransform<?, ?, ?> step, Object key) {
-    this.step = step;
-    this.key = key;
-  }
-
-  @Override
-  public String toString() {
-    return MoreObjects.toStringHelper(StepAndKey.class)
-        .add("step", step.getFullName())
-        .add("key", key)
-        .toString();
-  }
-
-  @Override
-  public int hashCode() {
-    return Objects.hash(step, key);
-  }
-
-  @Override
-  public boolean equals(Object other) {
-    if (other == this) {
-      return true;
-    } else if (!(other instanceof StepAndKey)) {
-      return false;
-    } else {
-      StepAndKey that = (StepAndKey) other;
-      return Objects.equals(this.step, that.step)
-          && Objects.equals(this.key, that.key);
-    }
+    return new AutoValue_StepAndKey(step, key);
   }
 }

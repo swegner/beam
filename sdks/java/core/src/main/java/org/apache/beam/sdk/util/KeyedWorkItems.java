@@ -19,11 +19,9 @@ package org.apache.beam.sdk.util;
 
 import org.apache.beam.sdk.util.TimerInternals.TimerData;
 
-import com.google.common.base.MoreObjects;
-import com.google.common.collect.Iterables;
+import com.google.auto.value.AutoValue;
 
 import java.util.Collections;
-import java.util.Objects;
 
 /**
  * Static utility methods that provide {@link KeyedWorkItem} implementations.
@@ -37,7 +35,7 @@ public class KeyedWorkItems {
    */
   public static <K, ElemT> KeyedWorkItem<K, ElemT> elementsWorkItem(
       K key, Iterable<WindowedValue<ElemT>> elementsIterable) {
-    return new ComposedKeyedWorkItem<>(key, Collections.<TimerData>emptyList(), elementsIterable);
+    return ComposedKeyedWorkItem.of(key, Collections.<TimerData>emptyList(), elementsIterable);
   }
 
   /**
@@ -48,7 +46,7 @@ public class KeyedWorkItems {
    */
   public static <K, ElemT> KeyedWorkItem<K, ElemT> timersWorkItem(
       K key, Iterable<TimerData> timersIterable) {
-    return new ComposedKeyedWorkItem<>(
+    return ComposedKeyedWorkItem.of(
         key, timersIterable, Collections.<WindowedValue<ElemT>>emptyList());
   }
 
@@ -61,63 +59,19 @@ public class KeyedWorkItems {
    */
   public static <K, ElemT> KeyedWorkItem<K, ElemT> workItem(
       K key, Iterable<TimerData> timersIterable, Iterable<WindowedValue<ElemT>> elementsIterable) {
-    return new ComposedKeyedWorkItem<>(key, timersIterable, elementsIterable);
+    return ComposedKeyedWorkItem.of(key, timersIterable, elementsIterable);
   }
 
   /**
    * A {@link KeyedWorkItem} composed of an underlying key, {@link TimerData} iterable, and element
    * iterable.
    */
-  public static class ComposedKeyedWorkItem<K, ElemT> implements KeyedWorkItem<K, ElemT> {
-    private final K key;
-    private final Iterable<TimerData> timers;
-    private final Iterable<WindowedValue<ElemT>> elements;
+  @AutoValue
+  public abstract static class ComposedKeyedWorkItem<K, ElemT> implements KeyedWorkItem<K, ElemT> {
 
-    private ComposedKeyedWorkItem(
+    static <K, ElemT> ComposedKeyedWorkItem<K, ElemT> of(
         K key, Iterable<TimerData> timers, Iterable<WindowedValue<ElemT>> elements) {
-      this.key = key;
-      this.timers = timers;
-      this.elements = elements;
-    }
-
-    @Override
-    public K key() {
-      return key;
-    }
-
-    @Override
-    public Iterable<TimerData> timersIterable() {
-      return timers;
-    }
-
-    @Override
-    public Iterable<WindowedValue<ElemT>> elementsIterable() {
-      return elements;
-    }
-
-    @Override
-    public boolean equals(Object other) {
-      if (other == null || !(other instanceof ComposedKeyedWorkItem)) {
-        return false;
-      }
-      KeyedWorkItem<?, ?> that = (KeyedWorkItem<?, ?>) other;
-      return Objects.equals(this.key, that.key())
-          && Iterables.elementsEqual(this.timersIterable(), that.timersIterable())
-          && Iterables.elementsEqual(this.elementsIterable(), that.elementsIterable());
-    }
-
-    @Override
-    public int hashCode() {
-      return Objects.hash(key, timers, elements);
-    }
-
-    @Override
-    public String toString() {
-      return MoreObjects.toStringHelper(ComposedKeyedWorkItem.class)
-          .add("key", key)
-          .add("elements", elements)
-          .add("timers", timers)
-          .toString();
+      return new AutoValue_KeyedWorkItems_ComposedKeyedWorkItem<>(key, timers, elements);
     }
   }
 }

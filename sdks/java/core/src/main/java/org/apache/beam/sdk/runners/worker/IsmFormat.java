@@ -124,8 +124,6 @@ public class IsmFormat {
     @Nullable abstract V value();
     @Nullable abstract byte[] metadata();
 
-    IsmRecord() {} // Prevent public constructor
-
     /** Returns an IsmRecord with the specified key components and value. */
     public static <V> IsmRecord<V> of(List<?> keyComponents, V value) {
       checkArgument(!keyComponents.isEmpty(), "Expected non-empty list of key components.");
@@ -557,8 +555,6 @@ public class IsmFormat {
     abstract int id();
     abstract long blockOffset();
     abstract long indexOffset();
-
-    IsmShard() {}
 
     /** Returns an IsmShard with the given id, block offset and no index offset. */
     public static IsmShard of(int id, long blockOffset) {

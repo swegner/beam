@@ -17,8 +17,6 @@
  */
 package org.apache.beam.sdk.util;
 
-import static com.google.common.base.Preconditions.checkNotNull;
-
 import org.apache.beam.sdk.coders.Coder;
 import org.apache.beam.sdk.coders.CoderException;
 import org.apache.beam.sdk.coders.InstantCoder;
@@ -28,7 +26,7 @@ import org.apache.beam.sdk.transforms.windowing.BoundedWindow;
 import org.apache.beam.sdk.util.state.StateNamespace;
 import org.apache.beam.sdk.util.state.StateNamespaces;
 
-import com.google.common.base.MoreObjects;
+import com.google.auto.value.AutoValue;
 import com.google.common.base.Preconditions;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
@@ -41,7 +39,6 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Objects;
 
 import javax.annotation.Nullable;
 
@@ -146,69 +143,22 @@ public interface TimerInternals {
   /**
    * Data about a timer as represented within {@link TimerInternals}.
    */
-  public static class TimerData implements Comparable<TimerData> {
-    private final StateNamespace namespace;
-    private final Instant timestamp;
-    private final TimeDomain domain;
-
-    private TimerData(StateNamespace namespace, Instant timestamp, TimeDomain domain) {
-      this.namespace = checkNotNull(namespace);
-      this.timestamp = checkNotNull(timestamp);
-      this.domain = checkNotNull(domain);
-    }
-
-    public StateNamespace getNamespace() {
-      return namespace;
-    }
-
-    public Instant getTimestamp() {
-      return timestamp;
-    }
-
-    public TimeDomain getDomain() {
-      return domain;
-    }
+  @AutoValue
+  abstract class TimerData implements Comparable<TimerData> {
+    public abstract StateNamespace getNamespace();
+    public abstract Instant getTimestamp();
+    public abstract TimeDomain getDomain();
 
     /**
      * Construct the {@code TimerKey} for the given parameters.
      */
     public static TimerData of(StateNamespace namespace, Instant timestamp, TimeDomain domain) {
-      return new TimerData(namespace, timestamp, domain);
-    }
-
-    @Override
-    public boolean equals(Object obj) {
-      if (this == obj) {
-        return true;
-      }
-
-      if (!(obj instanceof TimerData)) {
-        return false;
-      }
-
-      TimerData that = (TimerData) obj;
-      return Objects.equals(this.domain, that.domain)
-          && this.timestamp.isEqual(that.timestamp)
-          && Objects.equals(this.namespace, that.namespace);
-    }
-
-    @Override
-    public int hashCode() {
-      return Objects.hash(domain, timestamp, namespace);
-    }
-
-    @Override
-    public String toString() {
-      return MoreObjects.toStringHelper(getClass())
-          .add("namespace", namespace)
-          .add("timestamp", timestamp)
-          .add("domain", domain)
-          .toString();
+      return new AutoValue_TimerInternals_TimerData(namespace, timestamp, domain);
     }
 
     @Override
     public int compareTo(TimerData o) {
-      return Long.compare(timestamp.getMillis(), o.getTimestamp().getMillis());
+      return Long.compare(getTimestamp().getMillis(), o.getTimestamp().getMillis());
     }
   }
 
@@ -242,9 +192,9 @@ public interface TimerInternals {
     public void encode(TimerData timer, OutputStream outStream, Context context)
         throws CoderException, IOException {
       Context nestedContext = context.nested();
-      STRING_CODER.encode(timer.namespace.stringKey(), outStream, nestedContext);
-      INSTANT_CODER.encode(timer.timestamp, outStream, nestedContext);
-      STRING_CODER.encode(timer.domain.name(), outStream, nestedContext);
+      STRING_CODER.encode(timer.getNamespace().stringKey(), outStream, nestedContext);
+      INSTANT_CODER.encode(timer.getTimestamp(), outStream, nestedContext);
+      STRING_CODER.encode(timer.getDomain().name(), outStream, nestedContext);
     }
 
     @Override

@@ -113,7 +113,7 @@ public abstract class BroadcastHelper<T> implements Serializable {
       T val;
       try {
         val = coder.decode(new ByteArrayInputStream(bcast.value()),
-            new Coder.Context(true));
+            Coder.Context.forWholeStream(true));
       } catch (IOException ioe) {
         // this should not ever happen, log it if it does.
         LOG.warn(ioe.getMessage());

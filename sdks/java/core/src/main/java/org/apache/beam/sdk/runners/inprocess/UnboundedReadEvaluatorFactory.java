@@ -81,7 +81,7 @@ class UnboundedReadEvaluatorFactory implements TransformEvaluatorFactory {
       final InProcessEvaluationContext evaluationContext) {
     // Key by the application and the context the evaluation is occurring in (which call to
     // Pipeline#run).
-    EvaluatorKey key = new EvaluatorKey(transform, evaluationContext);
+    EvaluatorKey key = EvaluatorKey.of(transform, evaluationContext);
     @SuppressWarnings("unchecked")
     Queue<UnboundedReadEvaluator<OutputT>> evaluatorQueue =
         (Queue<UnboundedReadEvaluator<OutputT>>) sourceEvaluators.get(key);

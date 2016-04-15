@@ -342,7 +342,7 @@ public class PubsubGrpcClient implements PubsubClient {
     List<TopicPath> topics = new ArrayList<>(response.getTopicsCount());
     while (true) {
       for (Topic topic : response.getTopicsList()) {
-        topics.add(new TopicPath(topic.getName()));
+        topics.add(TopicPath.of(topic.getName()));
       }
       if (response.getNextPageToken().isEmpty()) {
         break;
@@ -389,7 +389,7 @@ public class PubsubGrpcClient implements PubsubClient {
     while (true) {
       for (Subscription subscription : response.getSubscriptionsList()) {
         if (subscription.getTopic().equals(topic.getPath())) {
-          subscriptions.add(new SubscriptionPath(subscription.getName()));
+          subscriptions.add(SubscriptionPath.of(subscription.getName()));
         }
       }
       if (response.getNextPageToken().isEmpty()) {

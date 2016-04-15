@@ -54,7 +54,7 @@ public class ByteStringCoder extends AtomicCoder<ByteString> {
       throw new CoderException("cannot encode a null ByteString");
     }
 
-    if (!context.isWholeStream) {
+    if (!context.isWholeStream()) {
       // ByteString is not delimited, so write its size before its contents.
       VarInt.encode(value.size(), outStream);
     }
@@ -63,7 +63,7 @@ public class ByteStringCoder extends AtomicCoder<ByteString> {
 
   @Override
   public ByteString decode(InputStream inStream, Context context) throws IOException {
-    if (context.isWholeStream) {
+    if (context.isWholeStream()) {
       return ByteString.readFrom(inStream);
     }
 
@@ -78,7 +78,7 @@ public class ByteStringCoder extends AtomicCoder<ByteString> {
   protected long getEncodedElementByteSize(ByteString value, Context context) throws Exception {
     int size = value.size();
 
-    if (context.isWholeStream) {
+    if (context.isWholeStream()) {
       return size;
     }
     return VarInt.getLength(size) + size;

@@ -60,7 +60,7 @@ public class ByteArrayCoder extends AtomicCoder<byte[]> {
     if (value == null) {
       throw new CoderException("cannot encode a null byte[]");
     }
-    if (!context.isWholeStream) {
+    if (!context.isWholeStream()) {
       VarInt.encode(value.length, outStream);
       outStream.write(value);
     } else {
@@ -76,7 +76,7 @@ public class ByteArrayCoder extends AtomicCoder<byte[]> {
    */
   public void encodeAndOwn(byte[] value, OutputStream outStream, Context context)
       throws IOException, CoderException {
-    if (!context.isWholeStream) {
+    if (!context.isWholeStream()) {
       VarInt.encode(value.length, outStream);
       outStream.write(value);
     } else {
@@ -91,7 +91,7 @@ public class ByteArrayCoder extends AtomicCoder<byte[]> {
   @Override
   public byte[] decode(InputStream inStream, Context context)
       throws IOException, CoderException {
-    if (context.isWholeStream) {
+    if (context.isWholeStream()) {
       return StreamUtils.getBytes(inStream);
     } else {
       int length = VarInt.decodeInt(inStream);
@@ -132,7 +132,7 @@ public class ByteArrayCoder extends AtomicCoder<byte[]> {
       throw new CoderException("cannot encode a null byte[]");
     }
     long size = 0;
-    if (!context.isWholeStream) {
+    if (!context.isWholeStream()) {
       size += VarInt.getLength(value.length);
     }
     return size + value.length;

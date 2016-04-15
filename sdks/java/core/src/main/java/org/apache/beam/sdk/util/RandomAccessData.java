@@ -73,7 +73,7 @@ public class RandomAccessData {
       if (value == POSITIVE_INFINITY) {
         throw new CoderException("Positive infinity can not be encoded.");
       }
-      if (!context.isWholeStream) {
+      if (!context.isWholeStream()) {
         VarInt.encode(value.size, outStream);
       }
       value.writeTo(outStream, 0, value.size);
@@ -83,7 +83,7 @@ public class RandomAccessData {
     public RandomAccessData decode(InputStream inStream, Coder.Context context)
         throws CoderException, IOException {
       RandomAccessData rval = new RandomAccessData();
-      if (!context.isWholeStream) {
+      if (!context.isWholeStream()) {
         int length = VarInt.decodeInt(inStream);
         rval.readFrom(inStream, 0, length);
       } else {
@@ -110,7 +110,7 @@ public class RandomAccessData {
         throw new CoderException("cannot encode a null in memory stream");
       }
       long size = 0;
-      if (!context.isWholeStream) {
+      if (!context.isWholeStream()) {
         size += VarInt.getLength(value.size);
       }
       return size + value.size;

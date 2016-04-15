@@ -20,10 +20,10 @@ package org.apache.beam.sdk.transforms.windowing;
 import org.apache.beam.sdk.coders.Coder;
 import org.apache.beam.sdk.transforms.display.DisplayData;
 
+import com.google.auto.value.AutoValue;
+
 import org.joda.time.Duration;
 import org.joda.time.Instant;
-
-import java.util.Objects;
 
 /**
  * A {@link WindowFn} that windows values into fixed-size timestamp-based windows.
@@ -35,25 +35,26 @@ import java.util.Objects;
  *   Window.<Integer>into(FixedWindows.of(Duration.standardMinutes(10))));
  * } </pre>
  */
-public class FixedWindows extends PartitioningWindowFn<Object, IntervalWindow> {
+@AutoValue
+public abstract class FixedWindows extends PartitioningWindowFn<Object, IntervalWindow> {
 
   /**
    * Size of this window.
    */
-  private final Duration size;
+  public abstract Duration getSize();
 
   /**
    * Offset of this window.  Windows start at time
    * N * size + offset, where 0 is the epoch.
    */
-  private final Duration offset;
+  public abstract Duration getOffset();
 
   /**
    * Partitions the timestamp space into half-open intervals of the form
    * [N * size, (N + 1) * size), where 0 is the epoch.
    */
   public static FixedWindows of(Duration size) {
-    return new FixedWindows(size, Duration.ZERO);
+    return FixedWindows.of(size, Duration.ZERO);
   }
 
   /**
@@ -64,30 +65,30 @@ public class FixedWindows extends PartitioningWindowFn<Object, IntervalWindow> {
    * @throws IllegalArgumentException if offset is not in [0, size)
    */
   public FixedWindows withOffset(Duration offset) {
-    return new FixedWindows(size, offset);
+    return FixedWindows.of(getSize(), offset);
   }
 
-  private FixedWindows(Duration size, Duration offset) {
+  private static FixedWindows of(Duration size, Duration offset) {
     if (offset.isShorterThan(Duration.ZERO) || !offset.isShorterThan(size)) {
       throw new IllegalArgumentException(
           "FixedWindows WindowingStrategies must have 0 <= offset < size");
     }
-    this.size = size;
-    this.offset = offset;
+
+    return new AutoValue_FixedWindows(size, offset);
   }
 
   @Override
   public IntervalWindow assignWindow(Instant timestamp) {
     long start = timestamp.getMillis()
-        - timestamp.plus(size).minus(offset).getMillis() % size.getMillis();
-    return new IntervalWindow(new Instant(start), size);
+        - timestamp.plus(getSize()).minus(getOffset()).getMillis() % getSize().getMillis();
+    return new IntervalWindow(new Instant(start), getSize());
   }
 
   @Override
   public void populateDisplayData(DisplayData.Builder builder) {
     builder
-        .add("size", size)
-        .addIfNotDefault("offset", offset, Duration.ZERO);
+        .add("size", getSize())
+        .addIfNotDefault("offset", getOffset(), Duration.ZERO);
   }
 
   @Override
@@ -98,28 +99,5 @@ public class FixedWindows extends PartitioningWindowFn<Object, IntervalWindow> {
   @Override
   public boolean isCompatible(WindowFn<?, ?> other) {
     return this.equals(other);
-  }
-
-  public Duration getSize() {
-    return size;
-  }
-
-  public Duration getOffset() {
-    return offset;
-  }
-
-  @Override
-  public boolean equals(Object object) {
-    if (!(object instanceof FixedWindows)) {
-      return false;
-    }
-    FixedWindows other = (FixedWindows) object;
-    return getOffset().equals(other.getOffset())
-        && getSize().equals(other.getSize());
-  }
-
-  @Override
-  public int hashCode() {
-    return Objects.hash(size, offset);
   }
 }

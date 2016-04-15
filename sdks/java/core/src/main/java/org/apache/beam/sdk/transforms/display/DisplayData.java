@@ -24,6 +24,7 @@ import org.apache.beam.sdk.transforms.DoFn;
 import org.apache.beam.sdk.transforms.PTransform;
 import org.apache.beam.sdk.transforms.ParDo;
 
+import com.google.auto.value.AutoValue;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
@@ -31,7 +32,6 @@ import com.google.common.collect.Sets;
 import com.fasterxml.jackson.annotation.JsonGetter;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonValue;
-
 import org.apache.avro.reflect.Nullable;
 import org.joda.time.Duration;
 import org.joda.time.Instant;
@@ -398,68 +398,31 @@ public class DisplayData {
    * identified by the specified key and namespace generated from the registering component's
    * class name.
    */
-  public static class Item {
-    private final String key;
-    private final String ns;
-    private final Type type;
-    private final Object value;
-    private final Object shortValue;
-    private final String label;
-    private final String url;
-
-    private static Item create(String nsClass, String key, Type type, Object value) {
-      FormattedItemValue formatted = type.format(value);
-      return new Item(
-          nsClass, key, type, formatted.getLongValue(), formatted.getShortValue(), null, null);
-    }
-
-    private Item(
-        String namespace,
-        String key,
-        Type type,
-        Object value,
-        Object shortValue,
-        String url,
-        String label) {
-      this.ns = namespace;
-      this.key = key;
-      this.type = type;
-      this.value = value;
-      this.shortValue = shortValue;
-      this.url = url;
-      this.label = label;
-    }
+  @AutoValue
+  public abstract static class Item {
 
     @JsonGetter("namespace")
-    public String getNamespace() {
-      return ns;
-    }
+    public abstract String getNamespace();
 
     @JsonGetter("key")
-    public String getKey() {
-      return key;
-    }
+    public abstract String getKey();
 
     /**
      * Retrieve the {@link DisplayData.Type} of display metadata. All metadata conforms to a
      * predefined set of allowed types.
      */
     @JsonGetter("type")
-    public Type getType() {
-      return type;
-    }
+    public abstract Type getType();
 
     /**
      * Retrieve the value of the metadata item.
      */
     @JsonGetter("value")
-    public Object getValue() {
-      return value;
-    }
+    public abstract Object getValue();
 
     /**
      * Return the optional short value for an item. Types may provide a short-value to displayed
-     * instead of or in addition to the full {@link Item#value}.
+     * instead of or in addition to the full {@link Item#getValue}.
      *
      * <p>Some display data types will not provide a short value, in which case the return value
      * will be null.
@@ -467,9 +430,7 @@ public class DisplayData {
     @JsonGetter("shortValue")
     @JsonInclude(JsonInclude.Include.NON_NULL)
     @Nullable
-    public Object getShortValue() {
-      return shortValue;
-    }
+    public abstract Object getShortValue();
 
     /**
      * Retrieve the optional label for an item. The label is a human-readable description of what
@@ -480,9 +441,7 @@ public class DisplayData {
     @JsonGetter("label")
     @JsonInclude(JsonInclude.Include.NON_NULL)
     @Nullable
-    public String getLabel() {
-      return label;
-    }
+    public abstract String getLabel();
 
     /**
      * Retrieve the optional link URL for an item. The URL points to an address where the reader
@@ -493,55 +452,45 @@ public class DisplayData {
     @JsonGetter("linkUrl")
     @JsonInclude(JsonInclude.Include.NON_NULL)
     @Nullable
-    public String getLinkUrl() {
-      return url;
+    public abstract String getLinkUrl();
+
+
+    private static Item create(String namespace, String key, Type type, Object value) {
+      FormattedItemValue formatted = type.format(value);
+      return create(
+          namespace, key, type, formatted.getLongValue(), formatted.getShortValue(), null, null);
+    }
+
+    private static Item create(
+        String namespace,
+        String key,
+        Type type,
+        Object value,
+        Object shortValue,
+        String url,
+        String label) {
+      return new AutoValue_DisplayData_Item(namespace, key, type, value, shortValue, label, url);
     }
 
     @Override
     public String toString() {
-      return String.format("%s:%s=%s", ns, key, value);
-    }
-
-    @Override
-    public boolean equals(Object obj) {
-      if (obj instanceof Item) {
-        Item that = (Item) obj;
-        return Objects.equals(this.ns, that.ns)
-            && Objects.equals(this.key, that.key)
-            && Objects.equals(this.type, that.type)
-            && Objects.equals(this.value, that.value)
-            && Objects.equals(this.shortValue, that.shortValue)
-            && Objects.equals(this.label, that.label)
-            && Objects.equals(this.url, that.url);
-      }
-
-      return false;
-    }
-
-    @Override
-    public int hashCode() {
-      return Objects.hash(
-          this.ns,
-          this.key,
-          this.type,
-          this.value,
-          this.shortValue,
-          this.label,
-          this.url);
+      return String.format("%s:%s=%s", getNamespace(), getKey(), getValue());
     }
 
     private Item withLabel(String label) {
-      return new Item(this.ns, this.key, this.type, this.value, this.shortValue, this.url, label);
+      return create(
+          getNamespace(), getKey(), getType(), getValue(), getShortValue(), getLinkUrl(), label);
     }
 
     private Item withUrl(String url) {
-      return new Item(this.ns, this.key, this.type, this.value, this.shortValue, url, this.label);
+      return create(
+          getNamespace(), getKey(), getType(), getValue(), getShortValue(), url, getLabel());
     }
 
     private Item withNamespace(ClassForDisplay nsClass) {
       String namespace = namespaceOf(nsClass);
-      return new Item(
-          namespace, this.key, this.type, this.value, this.shortValue, this.url, this.label);
+      return create(
+          namespace, getKey(), getType(), getValue(), getShortValue(), getLinkUrl(), getLabel());
     }
   }
 
@@ -555,50 +504,22 @@ public class DisplayData {
    * single component registers multiple metadata items with the same key, only the most recent
    * item will be retained; previous versions are discarded.
    */
-  public static class Identifier {
-    private final String ns;
-    private final String key;
+  @AutoValue
+  public abstract static class Identifier {
+    public abstract String getNamespace();
+    public abstract String getKey();
 
     public static Identifier of(ClassForDisplay namespace, String key) {
       return of(namespaceOf(namespace), key);
     }
 
     public static Identifier of(String namespace, String key) {
-      return new Identifier(namespace, key);
-    }
-
-    private Identifier(String ns, String key) {
-      this.ns = ns;
-      this.key = key;
-    }
-
-    public String getNamespace() {
-      return ns;
-    }
-
-    public String getKey() {
-      return key;
-    }
-
-    @Override
-    public boolean equals(Object obj) {
-      if (obj instanceof Identifier) {
-        Identifier that = (Identifier) obj;
-        return Objects.equals(this.ns, that.ns)
-          && Objects.equals(this.key, that.key);
-      }
-
-      return false;
-    }
-
-    @Override
-    public int hashCode() {
-      return Objects.hash(ns, key);
+      return new AutoValue_DisplayData_Identifier(namespace, key);
     }
 
     @Override
     public String toString() {
-      return String.format("%s:%s", ns, key);
+      return String.format("%s:%s", getNamespace(), getKey());
     }
   }
 

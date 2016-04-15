@@ -29,6 +29,7 @@ import org.apache.beam.sdk.util.WindowedValue;
 import org.apache.beam.sdk.values.PCollection;
 import org.apache.beam.sdk.values.PValue;
 
+import com.google.auto.value.AutoValue;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Function;
 import com.google.common.base.MoreObjects;
@@ -53,7 +54,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.NavigableSet;
-import java.util.Objects;
 import java.util.PriorityQueue;
 import java.util.Set;
 import java.util.TreeSet;
@@ -266,17 +266,17 @@ public class InMemoryWatermarkManager {
     }
 
     private synchronized void updateTimers(TimerUpdate update) {
-      NavigableSet<TimerData> keyTimers = objectTimers.get(update.key);
+      NavigableSet<TimerData> keyTimers = objectTimers.get(update.getKey());
       if (keyTimers == null) {
         keyTimers = new TreeSet<>();
-        objectTimers.put(update.key, keyTimers);
+        objectTimers.put(update.getKey(), keyTimers);
       }
-      for (TimerData timer : update.setTimers) {
+      for (TimerData timer : update.getSetTimers()) {
         if (TimeDomain.EVENT_TIME.equals(timer.getDomain())) {
           keyTimers.add(timer);
         }
       }
-      for (TimerData timer : update.deletedTimers) {
+      for (TimerData timer : update.getDeletedTimers()) {
         if (TimeDomain.EVENT_TIME.equals(timer.getDomain())) {
           keyTimers.remove(timer);
         }
@@ -469,17 +469,17 @@ public class InMemoryWatermarkManager {
     }
 
     private synchronized void updateTimers(TimerUpdate update) {
-      for (TimerData completedTimer : update.completedTimers) {
+      for (TimerData completedTimer : update.getCompletedTimers()) {
         pendingTimers.remove(completedTimer);
       }
-      Map<TimeDomain, NavigableSet<TimerData>> timerMap = timerMap(update.key);
-      for (TimerData addedTimer : update.setTimers) {
+      Map<TimeDomain, NavigableSet<TimerData>> timerMap = timerMap(update.getKey());
+      for (TimerData addedTimer : update.getSetTimers()) {
         NavigableSet<TimerData> timerQueue = timerMap.get(addedTimer.getDomain());
         if (timerQueue != null) {
           timerQueue.add(addedTimer);
         }
       }
-      for (TimerData deletedTimer : update.deletedTimers) {
+      for (TimerData deletedTimer : update.getDeletedTimers()) {
         NavigableSet<TimerData> timerQueue = timerMap.get(deletedTimer.getDomain());
         if (timerQueue != null) {
           timerQueue.remove(deletedTimer);
@@ -879,59 +879,32 @@ public class InMemoryWatermarkManager {
    * <p>The {@link #compareTo(KeyedHold)} method of {@link KeyedHold} is not consistent with equals,
    * as the key is arbitrarily ordered via identity, rather than object equality.
    */
-  private static final class KeyedHold implements Comparable<KeyedHold> {
+  @AutoValue
+  abstract static class KeyedHold implements Comparable<KeyedHold> {
     private static final Ordering<Object> KEY_ORDERING = Ordering.arbitrary().nullsLast();
 
-    private final Object key;
-    private final Instant timestamp;
+    /**
+     * Get the value of this {@link KeyedHold}.
+     */
+    public abstract Instant getTimestamp();
+
+    abstract Object getKey();
 
     /**
      * Create a new KeyedHold with the specified key and timestamp.
      */
     public static KeyedHold of(Object key, Instant timestamp) {
-      return new KeyedHold(key, MoreObjects.firstNonNull(timestamp, THE_END_OF_TIME.get()));
-    }
-
-    private KeyedHold(Object key, Instant timestamp) {
-      this.key = key;
-      this.timestamp = timestamp;
+      return new AutoValue_InMemoryWatermarkManager_KeyedHold(
+          MoreObjects.firstNonNull(timestamp, THE_END_OF_TIME.get()),
+          key);
     }
 
     @Override
     public int compareTo(KeyedHold that) {
       return ComparisonChain.start()
-          .compare(this.timestamp, that.timestamp)
-          .compare(this.key, that.key, KEY_ORDERING)
+          .compare(this.getTimestamp(), that.getTimestamp())
+          .compare(this.getKey(), that.getKey(), KEY_ORDERING)
           .result();
-    }
-
-    @Override
-    public int hashCode() {
-      return Objects.hash(timestamp, key);
-    }
-
-    @Override
-    public boolean equals(Object other) {
-      if (other == null || !(other instanceof KeyedHold)) {
-        return false;
-      }
-      KeyedHold that = (KeyedHold) other;
-      return Objects.equals(this.timestamp, that.timestamp) && Objects.equals(this.key, that.key);
-    }
-
-    /**
-     * Get the value of this {@link KeyedHold}.
-     */
-    public Instant getTimestamp() {
-      return timestamp;
-    }
-
-    @Override
-    public String toString() {
-      return MoreObjects.toStringHelper(KeyedHold.class)
-          .add("key", key)
-          .add("hold", timestamp)
-          .toString();
     }
   }
 
@@ -1132,22 +1105,40 @@ public class InMemoryWatermarkManager {
    * {@link TimerInternals} of an executed step. completedTimers are timers that were delivered as
    * the input to the executed step.
    */
-  public static class TimerUpdate {
-    private final Object key;
-    private final Iterable<? extends TimerData> completedTimers;
+  @AutoValue
+  public abstract static class TimerUpdate {
 
-    private final Iterable<? extends TimerData> setTimers;
-    private final Iterable<? extends TimerData> deletedTimers;
+    @VisibleForTesting
+    abstract Object getKey();
+
+    @VisibleForTesting
+    abstract Iterable<? extends TimerData> getCompletedTimers();
+
+    @VisibleForTesting
+    abstract Iterable<? extends TimerData> getSetTimers();
+
+    @VisibleForTesting
+    abstract Iterable<? extends TimerData> getDeletedTimers();
 
     /**
      * Returns a TimerUpdate for a null key with no timers.
      */
     public static TimerUpdate empty() {
-      return new TimerUpdate(
+      return TimerUpdate.of(
           null,
           Collections.<TimerData>emptyList(),
           Collections.<TimerData>emptyList(),
           Collections.<TimerData>emptyList());
+    }
+
+    private static TimerUpdate of(
+        Object key,
+        Iterable<? extends TimerData> completedTimers,
+        Iterable<? extends TimerData> setTimers,
+        Iterable<? extends TimerData> deletedTimers) {
+
+      return new AutoValue_InMemoryWatermarkManager_TimerUpdate(
+          key, completedTimers, setTimers, deletedTimers);
     }
 
     /**
@@ -1208,7 +1199,7 @@ public class InMemoryWatermarkManager {
        * and deletedTimers.
        */
       public TimerUpdate build() {
-        return new TimerUpdate(
+        return TimerUpdate.of(
             key,
             ImmutableSet.copyOf(completedTimers),
             ImmutableSet.copyOf(setTimers),
@@ -1216,59 +1207,12 @@ public class InMemoryWatermarkManager {
       }
     }
 
-    private TimerUpdate(
-        Object key,
-        Iterable<? extends TimerData> completedTimers,
-        Iterable<? extends TimerData> setTimers,
-        Iterable<? extends TimerData> deletedTimers) {
-      this.key = key;
-      this.completedTimers = completedTimers;
-      this.setTimers = setTimers;
-      this.deletedTimers = deletedTimers;
-    }
-
-    @VisibleForTesting
-    Object getKey() {
-      return key;
-    }
-
-    @VisibleForTesting
-    Iterable<? extends TimerData> getCompletedTimers() {
-      return completedTimers;
-    }
-
-    @VisibleForTesting
-    Iterable<? extends TimerData> getSetTimers() {
-      return setTimers;
-    }
-
-    @VisibleForTesting
-    Iterable<? extends TimerData> getDeletedTimers() {
-      return deletedTimers;
-    }
 
     /**
      * Returns a {@link TimerUpdate} that is like this one, but with the specified completed timers.
      */
     public TimerUpdate withCompletedTimers(Iterable<TimerData> completedTimers) {
-      return new TimerUpdate(this.key, completedTimers, setTimers, deletedTimers);
-    }
-
-    @Override
-    public int hashCode() {
-      return Objects.hash(key, completedTimers, setTimers, deletedTimers);
-    }
-
-    @Override
-    public boolean equals(Object other) {
-      if (other == null || !(other instanceof TimerUpdate)) {
-        return false;
-      }
-      TimerUpdate that = (TimerUpdate) other;
-      return Objects.equals(this.key, that.key)
-          && Objects.equals(this.completedTimers, that.completedTimers)
-          && Objects.equals(this.setTimers, that.setTimers)
-          && Objects.equals(this.deletedTimers, that.deletedTimers);
+      return TimerUpdate.of(this.getKey(), completedTimers, getSetTimers(), getDeletedTimers());
     }
   }
 

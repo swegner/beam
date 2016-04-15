@@ -19,6 +19,7 @@ package org.apache.beam.sdk.io.range;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import com.google.auto.value.AutoValue;
 import com.google.protobuf.ByteString;
 import com.google.protobuf.ByteString.ByteIterator;
 
@@ -39,15 +40,23 @@ import java.io.Serializable;
  * the largest possible key. In these cases, implementors should use {@link #isEmpty} to test
  * whether an upper bound key is empty.
  */
-public final class ByteKey implements Comparable<ByteKey>, Serializable {
+@AutoValue
+public abstract class ByteKey implements Comparable<ByteKey>, Serializable {
   /** An empty key. */
   public static final ByteKey EMPTY = ByteKey.of();
+
+  /**
+   * Returns an immutable {@link ByteString} representing this {@link ByteKey}.
+   *
+   * <p>Does not copy.
+   */
+  public abstract ByteString getValue();
 
   /**
    * Creates a new {@link ByteKey} backed by the specified {@link ByteString}.
    */
   public static ByteKey of(ByteString value) {
-    return new ByteKey(value);
+    return new AutoValue_ByteKey(value);
   }
 
   /**
@@ -79,28 +88,19 @@ public final class ByteKey implements Comparable<ByteKey>, Serializable {
   }
 
   /**
-   * Returns an immutable {@link ByteString} representing this {@link ByteKey}.
-   *
-   * <p>Does not copy.
-   */
-  public ByteString getValue() {
-    return value;
-  }
-
-  /**
    * Returns a newly-allocated {@code byte[]} representing this {@link ByteKey}.
    *
    * <p>Copies the underlying {@code byte[]}.
    */
   public byte[] getBytes() {
-    return value.toByteArray();
+    return getValue().toByteArray();
   }
 
   /**
    * Returns {@code true} if the {@code byte[]} backing this {@link ByteKey} is of length 0.
    */
   public boolean isEmpty() {
-    return value.isEmpty();
+    return getValue().isEmpty();
   }
 
   /**
@@ -112,8 +112,8 @@ public final class ByteKey implements Comparable<ByteKey>, Serializable {
   @Override
   public int compareTo(ByteKey other) {
     checkNotNull(other, "other");
-    ByteIterator thisIt = value.iterator();
-    ByteIterator otherIt = other.value.iterator();
+    ByteIterator thisIt = getValue().iterator();
+    ByteIterator otherIt = other.getValue().iterator();
     while (thisIt.hasNext() && otherIt.hasNext()) {
       // (byte & 0xff) converts [-128,127] bytes to [0,255] ints.
       int cmp = (thisIt.nextByte() & 0xff) - (otherIt.nextByte() & 0xff);
@@ -123,15 +123,10 @@ public final class ByteKey implements Comparable<ByteKey>, Serializable {
     }
     // If we get here, the prefix of both arrays is equal up to the shorter array. The array with
     // more bytes is larger.
-    return value.size() - other.value.size();
+    return getValue().size() - other.getValue().size();
   }
 
   ////////////////////////////////////////////////////////////////////////////////////
-  private final ByteString value;
-
-  private ByteKey(ByteString value) {
-    this.value = value;
-  }
 
   /** Array used as a helper in {@link #toString}. */
   private static final char[] HEX =
@@ -140,10 +135,10 @@ public final class ByteKey implements Comparable<ByteKey>, Serializable {
   // Prints the key as a string "[deadbeef]".
   @Override
   public String toString() {
-    char[] encoded = new char[2 * value.size() + 2];
+    char[] encoded = new char[2 * getValue().size() + 2];
     encoded[0] = '[';
     int cnt = 1;
-    ByteIterator iterator = value.iterator();
+    ByteIterator iterator = getValue().iterator();
     while (iterator.hasNext()) {
       byte b = iterator.nextByte();
       encoded[cnt] = HEX[(b & 0xF0) >>> 4];
@@ -153,22 +148,5 @@ public final class ByteKey implements Comparable<ByteKey>, Serializable {
     }
     encoded[cnt] = ']';
     return new String(encoded);
-  }
-
-  @Override
-  public boolean equals(Object o) {
-    if (o == this) {
-      return true;
-    }
-    if (!(o instanceof ByteKey)) {
-      return false;
-    }
-    ByteKey other = (ByteKey) o;
-    return (other.value.size() == value.size()) && this.compareTo(other) == 0;
-  }
-
-  @Override
-  public int hashCode() {
-    return value.hashCode();
   }
 }

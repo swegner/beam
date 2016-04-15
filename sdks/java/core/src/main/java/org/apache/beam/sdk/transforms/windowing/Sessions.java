@@ -22,14 +22,15 @@ import org.apache.beam.sdk.annotations.Experimental.Kind;
 import org.apache.beam.sdk.coders.Coder;
 import org.apache.beam.sdk.transforms.display.DisplayData;
 
+import com.google.auto.value.AutoValue;
+
 import org.joda.time.Duration;
 
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.Objects;
 
 /**
- * A {@link WindowFn} windowing values into sessions separated by {@link #gapDuration}-long
+ * A {@link WindowFn} windowing values into sessions separated by {@link #getGapDuration}-long
  * periods with no elements.
  *
  * <p>For example, in order to window data into session with at least 10 minute
@@ -40,24 +41,18 @@ import java.util.Objects;
  *   Window.<Integer>into(Sessions.withGapDuration(Duration.standardMinutes(10))));
  * } </pre>
  */
-public class Sessions extends WindowFn<Object, IntervalWindow> {
+@AutoValue
+public abstract class Sessions extends WindowFn<Object, IntervalWindow> {
   /**
    * Duration of the gaps between sessions.
    */
-  private final Duration gapDuration;
+  public abstract Duration getGapDuration();
 
   /**
    * Creates a {@code Sessions} {@link WindowFn} with the specified gap duration.
    */
   public static Sessions withGapDuration(Duration gapDuration) {
-    return new Sessions(gapDuration);
-  }
-
-  /**
-   * Creates a {@code Sessions} {@link WindowFn} with the specified gap duration.
-   */
-  private Sessions(Duration gapDuration) {
-    this.gapDuration = gapDuration;
+    return new AutoValue_Sessions(gapDuration);
   }
 
   @Override
@@ -65,7 +60,7 @@ public class Sessions extends WindowFn<Object, IntervalWindow> {
     // Assign each element into a window from its timestamp until gapDuration in the
     // future.  Overlapping windows (representing elements within gapDuration of
     // each other) will be merged.
-    return Arrays.asList(new IntervalWindow(c.timestamp(), gapDuration));
+    return Arrays.asList(new IntervalWindow(c.timestamp(), getGapDuration()));
   }
 
   @Override
@@ -94,26 +89,8 @@ public class Sessions extends WindowFn<Object, IntervalWindow> {
     return OutputTimeFns.outputAtEarliestInputTimestamp();
   }
 
-  public Duration getGapDuration() {
-    return gapDuration;
-  }
-
   @Override
   public void populateDisplayData(DisplayData.Builder builder) {
-    builder.add("gapDuration", gapDuration);
-  }
-
-  @Override
-  public boolean equals(Object object) {
-    if (!(object instanceof Sessions)) {
-      return false;
-    }
-    Sessions other = (Sessions) object;
-    return getGapDuration().equals(other.getGapDuration());
-  }
-
-  @Override
-  public int hashCode() {
-    return Objects.hash(gapDuration);
+    builder.add("gapDuration", getGapDuration());
   }
 }

@@ -35,8 +35,8 @@ import org.apache.beam.sdk.values.PCollectionView;
 import org.apache.beam.sdk.values.TupleTag;
 import org.apache.beam.sdk.values.TupleTagList;
 
+import com.google.auto.value.AutoValue;
 import com.google.common.base.Function;
-import com.google.common.base.Objects;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 
@@ -282,7 +282,7 @@ public class DoFnTester<InputT, OutputT> {
           @Override
           @SuppressWarnings("unchecked")
           public OutputElementWithTimestamp<OutputT> apply(Object input) {
-            return new OutputElementWithTimestamp<OutputT>(
+            return OutputElementWithTimestamp.of(
                 ((WindowedValue<OutputT>) input).getValue(),
                 ((WindowedValue<OutputT>) input).getTimestamp());
           }
@@ -383,35 +383,13 @@ public class DoFnTester<InputT, OutputT> {
    * Holder for an OutputElement along with its associated timestamp.
    */
   @Experimental
-  public static class OutputElementWithTimestamp<OutputT> {
-    private final OutputT value;
-    private final Instant timestamp;
+  @AutoValue
+  public abstract static class OutputElementWithTimestamp<OutputT> {
+    abstract OutputT getValue();
+    abstract Instant getTimestamp();
 
-    OutputElementWithTimestamp(OutputT value, Instant timestamp) {
-      this.value = value;
-      this.timestamp = timestamp;
-    }
-
-    OutputT getValue() {
-      return value;
-    }
-
-    Instant getTimestamp() {
-      return timestamp;
-    }
-
-    @Override
-    public boolean equals(Object obj) {
-      if (!(obj instanceof OutputElementWithTimestamp)) {
-        return false;
-      }
-      OutputElementWithTimestamp<?> other = (OutputElementWithTimestamp<?>) obj;
-      return Objects.equal(other.value, value) && Objects.equal(other.timestamp, timestamp);
-    }
-
-    @Override
-    public int hashCode() {
-      return Objects.hashCode(value, timestamp);
+    static <OutputT> OutputElementWithTimestamp of(OutputT value, Instant timestamp) {
+      return new AutoValue_DoFnTester_OutputElementWithTimestamp<>(value, timestamp);
     }
   }
 

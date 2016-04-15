@@ -36,7 +36,7 @@ import org.mockito.MockitoAnnotations;
 @RunWith(JUnit4.class)
 public class BatchTimerInternalsTest {
 
-  private static final StateNamespace NS1 = new StateNamespaceForTest("NS1");
+  private static final StateNamespace NS1 = StateNamespaceForTest.of("NS1");
 
   @Mock
   private ReduceFnRunner<?, ?, ?, ?> mockRunner;

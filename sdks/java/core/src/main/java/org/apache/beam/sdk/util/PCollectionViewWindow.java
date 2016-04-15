@@ -20,8 +20,7 @@ package org.apache.beam.sdk.util;
 import org.apache.beam.sdk.transforms.windowing.BoundedWindow;
 import org.apache.beam.sdk.values.PCollectionView;
 
-import java.util.Objects;
-
+import com.google.auto.value.AutoValue;
 /**
  * A pair of a {@link PCollectionView} and a {@link BoundedWindow}, which can
  * be thought of as window "of" the view. This is a value class for use e.g.
@@ -29,40 +28,13 @@ import java.util.Objects;
  *
  * @param <T> the type of the underlying PCollectionView
  */
-public final class PCollectionViewWindow<T> {
+@AutoValue
+public abstract class PCollectionViewWindow<T> {
 
-  private final PCollectionView<T> view;
-  private final BoundedWindow window;
-
-  private PCollectionViewWindow(PCollectionView<T> view, BoundedWindow window) {
-    this.view = view;
-    this.window = window;
-  }
+  public abstract PCollectionView<T> getView();
+  public abstract BoundedWindow getWindow();
 
   public static <T> PCollectionViewWindow<T> of(PCollectionView<T> view, BoundedWindow window) {
-    return new PCollectionViewWindow<>(view, window);
-  }
-
-  public PCollectionView<T> getView() {
-    return view;
-  }
-
-  public BoundedWindow getWindow() {
-    return window;
-  }
-
-  @Override
-  public boolean equals(Object otherObject) {
-    if (!(otherObject instanceof PCollectionViewWindow)) {
-      return false;
-    }
-    @SuppressWarnings("unchecked")
-    PCollectionViewWindow<T> other = (PCollectionViewWindow<T>) otherObject;
-    return getView().equals(other.getView()) && getWindow().equals(other.getWindow());
-  }
-
-  @Override
-  public int hashCode() {
-    return Objects.hash(getView(), getWindow());
+    return new AutoValue_PCollectionViewWindow<>(view, window);
   }
 }
