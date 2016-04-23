@@ -44,12 +44,15 @@ import org.apache.beam.sdk.transforms.PTransform;
 import org.apache.beam.sdk.transforms.ParDo;
 import org.apache.beam.sdk.transforms.SerializableFunction;
 import org.apache.beam.sdk.transforms.Sum;
+import org.apache.beam.sdk.transforms.display.DisplayData;
 import org.apache.beam.sdk.transforms.windowing.BoundedWindow;
 import org.apache.beam.sdk.util.BigQueryServices;
 import org.apache.beam.sdk.util.BigQueryServices.LoadService;
 import org.apache.beam.sdk.util.BigQueryServicesImpl;
 import org.apache.beam.sdk.util.BigQueryTableInserter;
 import org.apache.beam.sdk.util.BigQueryTableRowIterator;
+import org.apache.beam.sdk.util.IOChannelFactory;
+import org.apache.beam.sdk.util.IOChannelUtils;
 import org.apache.beam.sdk.util.MimeTypes;
 import org.apache.beam.sdk.util.PropertyNames;
 import org.apache.beam.sdk.util.Reshuffle;
@@ -78,7 +81,6 @@ import com.google.common.collect.Lists;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -513,6 +515,20 @@ public class BigQueryIO {
       @Override
       protected Coder<TableRow> getDefaultOutputCoder() {
         return TableRowJsonCoder.of();
+      }
+
+      @Override
+      public void populateDisplayData(DisplayData.Builder builder) {
+        super.populateDisplayData(builder);
+
+        if (table != null) {
+          builder.add("table", toTableSpec(table));
+        }
+
+        builder
+            .addIfNotNull("query", query)
+            .addIfNotNull("flattenResults", flattenResults)
+            .addIfNotDefault("validation", validate, true);
       }
 
       static {
@@ -1015,7 +1031,19 @@ public class BigQueryIO {
           table.setProjectId(options.getProject());
         }
         String jobIdToken = UUID.randomUUID().toString();
-        String tempFilePrefix = options.getTempLocation() + "/BigQuerySinkTemp/" + jobIdToken;
+        String tempLocation = options.getTempLocation();
+        String tempFilePrefix;
+        try {
+          IOChannelFactory factory = IOChannelUtils.getFactory(tempLocation);
+          tempFilePrefix = factory.resolve(
+                  factory.resolve(tempLocation, "BigQuerySinkTemp"),
+                  jobIdToken);
+        } catch (IOException e) {
+          throw new RuntimeException(
+              String.format("Failed to resolve BigQuery temp location in %s", tempLocation),
+              e);
+        }
+
         BigQueryServices bqServices = getBigQueryServices();
         return input.apply("Write", org.apache.beam.sdk.io.Write.to(
             new BigQuerySink(
@@ -1032,6 +1060,22 @@ public class BigQueryIO {
       @Override
       protected Coder<Void> getDefaultOutputCoder() {
         return VoidCoder.of();
+      }
+
+      @Override
+      public void populateDisplayData(DisplayData.Builder builder) {
+        super.populateDisplayData(builder);
+
+        if (tableRefFunction != null) {
+          builder.add("tableFn", tableRefFunction.getClass());
+        }
+
+        builder
+            .add("createDisposition", createDisposition.toString())
+            .add("writeDisposition", writeDisposition.toString())
+            .addIfNotNull("table", jsonTableRef)
+            .addIfNotNull("schema", jsonSchema)
+            .addIfNotDefault("validation", validate, true);
       }
 
       /** Returns the create disposition. */
