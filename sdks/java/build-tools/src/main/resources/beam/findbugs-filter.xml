@@ -1,6 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <FindBugsFilter>
   <Bug category="I18N"/>
+  <Bug pattern="DM_STRING_CTOR"/>
+
+
   <!--
           Baseline issues below. No new issues should be added to this list. Instead, suppress
           the issue inline using @SuppressFBWarnings and a documented reason, or (preferably) fix
@@ -60,12 +63,6 @@
     <!--Format string should use %n rather than \n-->
   </Match>
   <Match>
-    <Class name="org.apache.beam.sdk.coders.CoderRegistry"/>
-    <Method name="getDefaultCoder"/>
-    <Bug pattern="DM_STRING_CTOR"/>
-    <!--Method invokes inefficient new String(String) constructor-->
-  </Match>
-  <Match>
     <Class name="org.apache.beam.sdk.coders.EntityCoder"/>
     <Method name="decode"/>
     <Bug pattern="RR_NOT_CHECKED"/>
@@ -75,12 +72,6 @@
     <Class name="org.apache.beam.sdk.coders.InstantCoder$1"/>
     <Bug pattern="HE_INHERITS_EQUALS_USE_HASHCODE"/>
     <!--Class inherits equals() and uses Object.hashCode()-->
-  </Match>
-  <Match>
-    <Class name="org.apache.beam.sdk.coders.IterableLikeCoder"/>
-    <Method name="encode"/>
-    <Bug pattern="DM_STRING_CTOR"/>
-    <!--Method invokes inefficient new String(String) constructor-->
   </Match>
   <Match>
     <Class name="org.apache.beam.sdk.coders.JAXBCoder"/>
@@ -96,19 +87,7 @@
   <Match>
     <Class name="org.apache.beam.sdk.coders.StandardCoder"/>
     <Method name="toString"/>
-    <Bug pattern="DM_STRING_CTOR"/>
-    <!--Method invokes inefficient new String(String) constructor-->
-  </Match>
-  <Match>
-    <Class name="org.apache.beam.sdk.coders.StandardCoder"/>
-    <Method name="toString"/>
     <Bug pattern="SBSC_USE_STRINGBUFFER_CONCATENATION"/>
-    <!--Method invokes inefficient new String(String) constructor-->
-  </Match>
-  <Match>
-    <Class name="org.apache.beam.sdk.coders.StructuralByteArray"/>
-    <Method name="toString"/>
-    <Bug pattern="DM_STRING_CTOR"/>
     <!--Method invokes inefficient new String(String) constructor-->
   </Match>
   <Match>
@@ -125,32 +104,8 @@
   </Match>
   <Match>
     <Class name="org.apache.beam.sdk.coders.protobuf.ProtoCoder"/>
-    <Method name="encode"/>
-    <Bug pattern="DM_STRING_CTOR"/>
-    <!--Method invokes inefficient new String(String) constructor-->
-  </Match>
-  <Match>
-    <Class name="org.apache.beam.sdk.coders.protobuf.ProtoCoder"/>
-    <Method name="getEncodingId"/>
-    <Bug pattern="DM_STRING_CTOR"/>
-    <!--Method invokes inefficient new String(String) constructor-->
-  </Match>
-  <Match>
-    <Class name="org.apache.beam.sdk.coders.protobuf.ProtoCoder"/>
     <Bug pattern="SE_NO_SERIALVERSIONID"/>
     <!--Class is Serializable, but doesn't define serialVersionUID-->
-  </Match>
-  <Match>
-    <Class name="org.apache.beam.sdk.io.AvroIO"/>
-    <Method name="validateOutputComponent"/>
-    <Bug pattern="DM_STRING_CTOR"/>
-    <!--Method invokes inefficient new String(String) constructor-->
-  </Match>
-  <Match>
-    <Class name="org.apache.beam.sdk.io.AvroSource"/>
-    <Method name="createForSubrangeOfFile"/>
-    <Bug pattern="DM_STRING_CTOR"/>
-    <!--Method invokes inefficient new String(String) constructor-->
   </Match>
   <Match>
     <Class name="org.apache.beam.sdk.io.AvroSource"/>
@@ -158,33 +113,9 @@
     <!--Class is Serializable, but doesn't define serialVersionUID-->
   </Match>
   <Match>
-    <Class name="org.apache.beam.sdk.io.AvroSource$AvroBlock"/>
-    <Method name="decodeAsInputStream"/>
-    <Bug pattern="DM_STRING_CTOR"/>
-    <!--Method invokes inefficient new String(String) constructor-->
-  </Match>
-  <Match>
-    <Class name="org.apache.beam.sdk.io.BigQueryIO"/>
-    <Method name="parseTableSpec"/>
-    <Bug pattern="DM_STRING_CTOR"/>
-    <!--Method invokes inefficient new String(String) constructor-->
-  </Match>
-  <Match>
-    <Class name="org.apache.beam.sdk.io.BigQueryIO$BigQueryQuerySource"/>
-    <Method name="executeQuery"/>
-    <Bug pattern="DM_STRING_CTOR"/>
-    <!--Method invokes inefficient new String(String) constructor-->
-  </Match>
-  <Match>
     <Class name="org.apache.beam.sdk.io.BigQueryIO$BigQueryQuerySource"/>
     <Bug pattern="SE_NO_SERIALVERSIONID"/>
     <!--Class is Serializable, but doesn't define serialVersionUID-->
-  </Match>
-  <Match>
-    <Class name="org.apache.beam.sdk.io.BigQueryIO$Read$Bound"/>
-    <Method name="apply"/>
-    <Bug pattern="DM_STRING_CTOR"/>
-    <!--Method invokes inefficient new String(String) constructor-->
   </Match>
   <Match>
     <Class name="org.apache.beam.sdk.io.BigQueryIO$StreamWithDeDup"/>
@@ -206,42 +137,6 @@
     <Class name="org.apache.beam.sdk.io.BigQueryIO$TagWithUniqueIdsAndTable"/>
     <Bug pattern="SE_NO_SERIALVERSIONID"/>
     <!--Class is Serializable, but doesn't define serialVersionUID-->
-  </Match>
-  <Match>
-    <Class name="org.apache.beam.sdk.io.BigQueryIO$Write$Bound"/>
-    <Method name="verifyTableEmpty"/>
-    <Bug pattern="DM_STRING_CTOR"/>
-    <!--Method invokes inefficient new String(String) constructor-->
-  </Match>
-  <Match>
-    <Class name="org.apache.beam.sdk.io.FileBasedSink"/>
-    <Method name="getFileExtension"/>
-    <Bug pattern="DM_STRING_CTOR"/>
-    <!--Method invokes inefficient new String(String) constructor-->
-  </Match>
-  <Match>
-    <Class name="org.apache.beam.sdk.io.PubsubIO"/>
-    <Method name="validateProjectName"/>
-    <Bug pattern="DM_STRING_CTOR"/>
-    <!--Method invokes inefficient new String(String) constructor-->
-  </Match>
-  <Match>
-    <Class name="org.apache.beam.sdk.io.PubsubIO"/>
-    <Method name="validatePubsubName"/>
-    <Bug pattern="DM_STRING_CTOR"/>
-    <!--Method invokes inefficient new String(String) constructor-->
-  </Match>
-  <Match>
-    <Class name="org.apache.beam.sdk.io.PubsubIO$PubsubSubscription"/>
-    <Method name="fromPath"/>
-    <Bug pattern="DM_STRING_CTOR"/>
-    <!--Method invokes inefficient new String(String) constructor-->
-  </Match>
-  <Match>
-    <Class name="org.apache.beam.sdk.io.PubsubIO$PubsubTopic"/>
-    <Method name="fromPath"/>
-    <Bug pattern="DM_STRING_CTOR"/>
-    <!--Method invokes inefficient new String(String) constructor-->
   </Match>
   <Match>
     <Class name="org.apache.beam.sdk.io.PubsubIO$Read$Bound$PubsubBoundedReader"/>
@@ -266,22 +161,10 @@
     <!--Class is Serializable, but doesn't define serialVersionUID-->
   </Match>
   <Match>
-    <Class name="org.apache.beam.sdk.io.TextIO"/>
-    <Method name="validateOutputComponent"/>
-    <Bug pattern="DM_STRING_CTOR"/>
-    <!--Method invokes inefficient new String(String) constructor-->
-  </Match>
-  <Match>
     <Class name="org.apache.beam.sdk.io.Write$Bound"/>
     <Method name="createWrite"/>
     <Bug pattern="DLS_DEAD_LOCAL_STORE"/>
     <!--Dead store to local variable-->
-  </Match>
-  <Match>
-    <Class name="org.apache.beam.sdk.io.XmlSource$XMLReader"/>
-    <Method name="getFirstOccurenceOfRecordElement"/>
-    <Bug pattern="DM_STRING_CTOR"/>
-    <!--Method invokes inefficient new String(String) constructor-->
   </Match>
   <Match>
     <Class name="org.apache.beam.sdk.io.range.OffsetRangeTracker"/>
@@ -294,12 +177,6 @@
     <Field name="stopOffset"/>
     <Bug pattern="IS2_INCONSISTENT_SYNC"/>
     <!--Inconsistent synchronization-->
-  </Match>
-  <Match>
-    <Class name="org.apache.beam.sdk.options.PipelineOptionsFactory"/>
-    <Method name="parseObjects"/>
-    <Bug pattern="DM_STRING_CTOR"/>
-    <!--Method invokes inefficient new String(String) constructor-->
   </Match>
   <Match>
     <Class name="org.apache.beam.sdk.options.PipelineOptionsFactory$1"/>
@@ -336,24 +213,6 @@
     <Method name="&lt;init&gt;"/>
     <Bug pattern="DMI_RANDOM_USED_ONLY_ONCE"/>
     <!--Random object created and used only once-->
-  </Match>
-  <Match>
-    <Class name="org.apache.beam.sdk.runners.DirectPipelineRunner"/>
-    <Method name="getFileExtension"/>
-    <Bug pattern="DM_STRING_CTOR"/>
-    <!--Method invokes inefficient new String(String) constructor-->
-  </Match>
-  <Match>
-    <Class name="org.apache.beam.sdk.runners.DirectPipelineRunner$Evaluator"/>
-    <Method name="ensureElementEncodable"/>
-    <Bug pattern="DM_STRING_CTOR"/>
-    <!--Method invokes inefficient new String(String) constructor-->
-  </Match>
-  <Match>
-    <Class name="org.apache.beam.sdk.runners.DirectPipelineRunner$TestCombineDoFn"/>
-    <Method name="processElement"/>
-    <Bug pattern="DM_STRING_CTOR"/>
-    <!--Method invokes inefficient new String(String) constructor-->
   </Match>
   <Match>
     <Class name="org.apache.beam.sdk.testing.CoderProperties"/>
@@ -422,18 +281,6 @@
     <!--Class is Serializable, but doesn't define serialVersionUID-->
   </Match>
   <Match>
-    <Class name="org.apache.beam.sdk.testing.TestPipeline"/>
-    <Method name="testingPipelineOptions"/>
-    <Bug pattern="DM_STRING_CTOR"/>
-    <!--Method invokes inefficient new String(String) constructor-->
-  </Match>
-  <Match>
-    <Class name="org.apache.beam.sdk.testing.TestPipeline"/>
-    <Method name="toString"/>
-    <Bug pattern="DM_STRING_CTOR"/>
-    <!--Method invokes inefficient new String(String) constructor-->
-  </Match>
-  <Match>
     <Class name="org.apache.beam.sdk.transforms.ApproximateQuantiles$ApproximateQuantilesCombineFn"/>
     <Method name="create"/>
     <Bug pattern="ICAST_INT_CAST_TO_DOUBLE_PASSED_TO_CEIL"/>
@@ -477,21 +324,9 @@
     <!--Class is Serializable, but doesn't define serialVersionUID-->
   </Match>
   <Match>
-    <Class name="org.apache.beam.sdk.transforms.DoFnTester"/>
-    <Method name="getAggregatorValue"/>
-    <Bug pattern="DM_STRING_CTOR"/>
-    <!--Method invokes inefficient new String(String) constructor-->
-  </Match>
-  <Match>
     <Class name="org.apache.beam.sdk.transforms.FlatMapElements"/>
     <Bug pattern="SE_NO_SERIALVERSIONID"/>
     <!--Class is Serializable, but doesn't define serialVersionUID-->
-  </Match>
-  <Match>
-    <Class name="org.apache.beam.sdk.transforms.GroupByKey"/>
-    <Method name="applicableTo"/>
-    <Bug pattern="DM_STRING_CTOR"/>
-    <!--Method invokes inefficient new String(String) constructor-->
   </Match>
   <Match>
     <Class name="org.apache.beam.sdk.transforms.IntraBundleParallelization$MultiThreadedIntraBundleProcessingDoFn"/>
@@ -562,18 +397,6 @@
     <!--Uninitialized read of field method called from constructor of superclass-->
   </Match>
   <Match>
-    <Class name="org.apache.beam.sdk.util.AvroUtils"/>
-    <Method name="getTypedCellValue"/>
-    <Bug pattern="DM_STRING_CTOR"/>
-    <!--Method invokes inefficient new String(String) constructor-->
-  </Match>
-  <Match>
-    <Class name="org.apache.beam.sdk.util.AvroUtils"/>
-    <Method name="readMetadataFromFile"/>
-    <Bug pattern="DM_STRING_CTOR"/>
-    <!--Method invokes inefficient new String(String) constructor-->
-  </Match>
-  <Match>
     <Class name="org.apache.beam.sdk.util.AvroUtils$AvroMetadata"/>
     <Method name="getSyncMarker"/>
     <Bug pattern="EI_EXPOSE_REP"/>
@@ -597,18 +420,6 @@
     <!--Non-transient non-serializable instance field in serializable class-->
   </Match>
   <Match>
-    <Class name="org.apache.beam.sdk.util.CounterAggregator"/>
-    <Method name="constructCounter"/>
-    <Bug pattern="DM_STRING_CTOR"/>
-    <!--Method invokes inefficient new String(String) constructor-->
-  </Match>
-  <Match>
-    <Class name="org.apache.beam.sdk.util.Credentials"/>
-    <Method name="getCredentialFromClientSecrets"/>
-    <Bug pattern="DM_STRING_CTOR"/>
-    <!--Method invokes inefficient new String(String) constructor-->
-  </Match>
-  <Match>
     <Class name="org.apache.beam.sdk.util.ExposedByteArrayInputStream"/>
     <Method name="readAll"/>
     <Bug pattern="EI_EXPOSE_REP"/>
@@ -625,30 +436,6 @@
     <Method name="writeAndOwn"/>
     <Bug pattern="EI_EXPOSE_REP2"/>
     <!--May expose internal representation by incorporating reference to mutable object-->
-  </Match>
-  <Match>
-    <Class name="org.apache.beam.sdk.util.FileIOChannelFactory"/>
-    <Method name="match"/>
-    <Bug pattern="DM_STRING_CTOR"/>
-    <!--Method invokes inefficient new String(String) constructor-->
-  </Match>
-  <Match>
-    <Class name="org.apache.beam.sdk.util.IOChannelUtils"/>
-    <Method name="create"/>
-    <Bug pattern="DM_STRING_CTOR"/>
-    <!--Method invokes inefficient new String(String) constructor-->
-  </Match>
-  <Match>
-    <Class name="org.apache.beam.sdk.util.IOChannelUtils"/>
-    <Method name="getFactory"/>
-    <Bug pattern="DM_STRING_CTOR"/>
-    <!--Method invokes inefficient new String(String) constructor-->
-  </Match>
-  <Match>
-    <Class name="org.apache.beam.sdk.util.InstanceBuilder"/>
-    <Method name="buildFromConstructor"/>
-    <Bug pattern="DM_STRING_CTOR"/>
-    <!--Method invokes inefficient new String(String) constructor-->
   </Match>
   <Match>
     <Class name="org.apache.beam.sdk.util.PCollectionViews$PCollectionViewBase"/>
@@ -698,22 +485,10 @@
     <!--Method may fail to clean up stream or resource-->
   </Match>
   <Match>
-    <Class name="org.apache.beam.sdk.util.SerializableUtils"/>
-    <Method name="deserializeFromByteArray"/>
-    <Bug pattern="DM_STRING_CTOR"/>
-    <!--Method invokes inefficient new String(String) constructor-->
-  </Match>
-  <Match>
     <Class name="org.apache.beam.sdk.util.SystemReduceFn"/>
     <Method name="prefetchOnTrigger"/>
     <Bug pattern="RV_RETURN_VALUE_IGNORED_NO_SIDE_EFFECT"/>
     <!--Return value of method without side effect is ignored-->
-  </Match>
-  <Match>
-    <Class name="org.apache.beam.sdk.util.Transport"/>
-    <Method name="apiComponentsFromUrl"/>
-    <Bug pattern="DM_STRING_CTOR"/>
-    <!--Method invokes inefficient new String(String) constructor-->
   </Match>
   <Match>
     <Class name="org.apache.beam.sdk.util.TriggerContextFactory"/>
@@ -771,24 +546,6 @@
   </Match>
   <Match>
     <Class name="org.apache.beam.sdk.util.ZipFiles"/>
-    <Method name="checkName"/>
-    <Bug pattern="DM_STRING_CTOR"/>
-    <!--Method invokes inefficient new String(String) constructor-->
-  </Match>
-  <Match>
-    <Class name="org.apache.beam.sdk.util.ZipFiles"/>
-    <Method name="unzipFile"/>
-    <Bug pattern="DM_STRING_CTOR"/>
-    <!--Method invokes inefficient new String(String) constructor-->
-  </Match>
-  <Match>
-    <Class name="org.apache.beam.sdk.util.ZipFiles"/>
-    <Method name="zipDirectoryInternal"/>
-    <Bug pattern="DM_STRING_CTOR"/>
-    <!--Method invokes inefficient new String(String) constructor-->
-  </Match>
-  <Match>
-    <Class name="org.apache.beam.sdk.util.ZipFiles"/>
     <Method name="zipDirectory"/>
     <Bug pattern="NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE"/>
     <!--Possible null pointer dereference due to return value of called method-->
@@ -834,24 +591,6 @@
     <Method name="apply"/>
     <Bug pattern="NP_PARAMETER_MUST_BE_NONNULL_BUT_MARKED_AS_NULLABLE"/>
     <!--Parameter must be non-null but is marked as nullable-->
-  </Match>
-  <Match>
-    <Class name="org.apache.beam.sdk.util.gcsfs.GcsPath"/>
-    <Method name="&lt;init&gt;"/>
-    <Bug pattern="DM_STRING_CTOR"/>
-    <!--Method invokes inefficient new String(String) constructor-->
-  </Match>
-  <Match>
-    <Class name="org.apache.beam.sdk.util.gcsfs.GcsPath"/>
-    <Method name="resolve"/>
-    <Bug pattern="DM_STRING_CTOR"/>
-    <!--Method invokes inefficient new String(String) constructor-->
-  </Match>
-  <Match>
-    <Class name="org.apache.beam.sdk.util.gcsfs.GcsPath"/>
-    <Method name="toUri"/>
-    <Bug pattern="DM_STRING_CTOR"/>
-    <!--Method invokes inefficient new String(String) constructor-->
   </Match>
   <Match>
     <Class name="org.apache.beam.sdk.util.state.StateMerging"/>
