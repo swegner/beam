@@ -2,6 +2,7 @@
 <FindBugsFilter>
   <Bug category="I18N"/>
   <Bug pattern="DM_STRING_CTOR"/>
+  <Bug pattern="SE_NO_SERIALVERSIONID"/>
 
 
   <!--
@@ -74,11 +75,6 @@
     <!--Class inherits equals() and uses Object.hashCode()-->
   </Match>
   <Match>
-    <Class name="org.apache.beam.sdk.coders.JAXBCoder"/>
-    <Bug pattern="SE_NO_SERIALVERSIONID"/>
-    <!--Class is Serializable, but doesn't define serialVersionUID-->
-  </Match>
-  <Match>
     <Class name="org.apache.beam.sdk.coders.SerializableCoder"/>
     <Method name="equals"/>
     <Bug pattern="NP_EQUALS_SHOULD_HANDLE_NULL_ARGUMENT"/>
@@ -103,40 +99,10 @@
     <!--May expose internal representation by incorporating reference to mutable object-->
   </Match>
   <Match>
-    <Class name="org.apache.beam.sdk.coders.protobuf.ProtoCoder"/>
-    <Bug pattern="SE_NO_SERIALVERSIONID"/>
-    <!--Class is Serializable, but doesn't define serialVersionUID-->
-  </Match>
-  <Match>
-    <Class name="org.apache.beam.sdk.io.AvroSource"/>
-    <Bug pattern="SE_NO_SERIALVERSIONID"/>
-    <!--Class is Serializable, but doesn't define serialVersionUID-->
-  </Match>
-  <Match>
-    <Class name="org.apache.beam.sdk.io.BigQueryIO$BigQueryQuerySource"/>
-    <Bug pattern="SE_NO_SERIALVERSIONID"/>
-    <!--Class is Serializable, but doesn't define serialVersionUID-->
-  </Match>
-  <Match>
-    <Class name="org.apache.beam.sdk.io.BigQueryIO$StreamWithDeDup"/>
-    <Bug pattern="SE_NO_SERIALVERSIONID"/>
-    <!--Class is Serializable, but doesn't define serialVersionUID-->
-  </Match>
-  <Match>
-    <Class name="org.apache.beam.sdk.io.BigQueryIO$StreamingWriteFn"/>
-    <Bug pattern="SE_NO_SERIALVERSIONID"/>
-    <!--Class is Serializable, but doesn't define serialVersionUID-->
-  </Match>
-  <Match>
     <Class name="org.apache.beam.sdk.io.BigQueryIO$StreamingWriteFn"/>
     <Method name="finishBundle"/>
     <Bug pattern="WMI_WRONG_MAP_ITERATOR"/>
     <!--Inefficient use of keySet iterator instead of entrySet iterator-->
-  </Match>
-  <Match>
-    <Class name="org.apache.beam.sdk.io.BigQueryIO$TagWithUniqueIdsAndTable"/>
-    <Bug pattern="SE_NO_SERIALVERSIONID"/>
-    <!--Class is Serializable, but doesn't define serialVersionUID-->
   </Match>
   <Match>
     <Class name="org.apache.beam.sdk.io.PubsubIO$Read$Bound$PubsubBoundedReader"/>
@@ -145,20 +111,10 @@
     <!--Random object created and used only once-->
   </Match>
   <Match>
-    <Class name="org.apache.beam.sdk.io.PubsubIO$Write$Bound$PubsubWriter"/>
-    <Bug pattern="SE_NO_SERIALVERSIONID"/>
-    <!--Class is Serializable, but doesn't define serialVersionUID-->
-  </Match>
-  <Match>
     <Class name="org.apache.beam.sdk.io.PubsubUnboundedSink$WriterFn"/>
     <Method name="publishBatch"/>
     <Bug pattern="DLS_DEAD_LOCAL_STORE"/>
     <!--Dead store to local variable-->
-  </Match>
-  <Match>
-    <Class name="org.apache.beam.sdk.io.PubsubUnboundedSink$WriterFn"/>
-    <Bug pattern="SE_NO_SERIALVERSIONID"/>
-    <!--Class is Serializable, but doesn't define serialVersionUID-->
   </Match>
   <Match>
     <Class name="org.apache.beam.sdk.io.Write$Bound"/>
@@ -221,16 +177,6 @@
     <!--Field is a mutable collection which should be package protected-->
   </Match>
   <Match>
-    <Class name="org.apache.beam.sdk.testing.PAssert$CreateActual"/>
-    <Bug pattern="SE_NO_SERIALVERSIONID"/>
-    <!--Class is Serializable, but doesn't define serialVersionUID-->
-  </Match>
-  <Match>
-    <Class name="org.apache.beam.sdk.testing.PAssert$CreateExpected"/>
-    <Bug pattern="SE_NO_SERIALVERSIONID"/>
-    <!--Class is Serializable, but doesn't define serialVersionUID-->
-  </Match>
-  <Match>
     <Class name="org.apache.beam.sdk.testing.PAssert$IterableAssert"/>
     <Method name="equals"/>
     <Bug pattern="EQ_UNUSUAL"/>
@@ -243,11 +189,6 @@
     <!--Non-transient non-serializable instance field in serializable class-->
   </Match>
   <Match>
-    <Class name="org.apache.beam.sdk.testing.PAssert$OneSideInputAssert"/>
-    <Bug pattern="SE_NO_SERIALVERSIONID"/>
-    <!--Class is Serializable, but doesn't define serialVersionUID-->
-  </Match>
-  <Match>
     <Class name="org.apache.beam.sdk.testing.PAssert$SingletonAssert"/>
     <Method name="equals"/>
     <Bug pattern="EQ_UNUSUAL"/>
@@ -258,27 +199,12 @@
     <Field name="pipeline"/>
     <Bug pattern="SE_BAD_FIELD"/>
     <!--Non-transient non-serializable instance field in serializable class-->
-  </Match>
-  <Match>
-    <Class name="org.apache.beam.sdk.testing.PAssert$TwoSideInputAssert"/>
-    <Bug pattern="SE_NO_SERIALVERSIONID"/>
-    <!--Class is Serializable, but doesn't define serialVersionUID-->
-  </Match>
-  <Match>
-    <Class name="org.apache.beam.sdk.testing.SerializableMatchers$SerializableArrayViaCoder"/>
-    <Bug pattern="SE_NO_SERIALVERSIONID"/>
-    <!--Class is Serializable, but doesn't define serialVersionUID-->
   </Match>
   <Match>
     <Class name="org.apache.beam.sdk.testing.SerializableMatchers$SerializableArrayViaCoder"/>
     <Field name="value"/>
     <Bug pattern="SE_TRANSIENT_FIELD_NOT_RESTORED"/>
     <!--Transient field that isn't set by deserialization. -->
-  </Match>
-  <Match>
-    <Class name="org.apache.beam.sdk.testing.SerializableMatchers$SerializableViaCoder"/>
-    <Bug pattern="SE_NO_SERIALVERSIONID"/>
-    <!--Class is Serializable, but doesn't define serialVersionUID-->
   </Match>
   <Match>
     <Class name="org.apache.beam.sdk.transforms.ApproximateQuantiles$ApproximateQuantilesCombineFn"/>
@@ -293,66 +219,16 @@
     <!--Class defines compareTo(...) and uses Object.equals()-->
   </Match>
   <Match>
-    <Class name="org.apache.beam.sdk.transforms.Combine$PerKey"/>
-    <Bug pattern="SE_NO_SERIALVERSIONID"/>
-    <!--Class is Serializable, but doesn't define serialVersionUID-->
-  </Match>
-  <Match>
-    <Class name="org.apache.beam.sdk.transforms.Combine$PerKeyWithHotKeyFanout"/>
-    <Bug pattern="SE_NO_SERIALVERSIONID"/>
-    <!--Class is Serializable, but doesn't define serialVersionUID-->
-  </Match>
-  <Match>
-    <Class name="org.apache.beam.sdk.transforms.Create$TimestampedValues"/>
-    <Bug pattern="SE_NO_SERIALVERSIONID"/>
-    <!--Class is Serializable, but doesn't define serialVersionUID-->
-  </Match>
-  <Match>
     <Class name="org.apache.beam.sdk.transforms.Create$TimestampedValues"/>
     <Field name="elems"/>
     <Bug pattern="SE_TRANSIENT_FIELD_NOT_RESTORED"/>
     <!--Transient field that isn't set by deserialization. -->
   </Match>
   <Match>
-    <Class name="org.apache.beam.sdk.transforms.Create$Values"/>
-    <Bug pattern="SE_NO_SERIALVERSIONID"/>
-    <!--Class is Serializable, but doesn't define serialVersionUID-->
-  </Match>
-  <Match>
-    <Class name="org.apache.beam.sdk.transforms.DoFnReflector$SimpleDoFnAdapter"/>
-    <Bug pattern="SE_NO_SERIALVERSIONID"/>
-    <!--Class is Serializable, but doesn't define serialVersionUID-->
-  </Match>
-  <Match>
-    <Class name="org.apache.beam.sdk.transforms.FlatMapElements"/>
-    <Bug pattern="SE_NO_SERIALVERSIONID"/>
-    <!--Class is Serializable, but doesn't define serialVersionUID-->
-  </Match>
-  <Match>
-    <Class name="org.apache.beam.sdk.transforms.IntraBundleParallelization$MultiThreadedIntraBundleProcessingDoFn"/>
-    <Bug pattern="SE_NO_SERIALVERSIONID"/>
-    <!--Class is Serializable, but doesn't define serialVersionUID-->
-  </Match>
-  <Match>
-    <Class name="org.apache.beam.sdk.transforms.MapElements"/>
-    <Bug pattern="SE_NO_SERIALVERSIONID"/>
-    <!--Class is Serializable, but doesn't define serialVersionUID-->
-  </Match>
-  <Match>
     <Class name="org.apache.beam.sdk.transforms.Mean$CountSum"/>
     <Method name="equals"/>
     <Bug pattern="FE_FLOATING_POINT_EQUALITY"/>
     <!--Test for floating point equality-->
-  </Match>
-  <Match>
-    <Class name="org.apache.beam.sdk.transforms.Partition"/>
-    <Bug pattern="SE_NO_SERIALVERSIONID"/>
-    <!--Class is Serializable, but doesn't define serialVersionUID-->
-  </Match>
-  <Match>
-    <Class name="org.apache.beam.sdk.transforms.WithKeys"/>
-    <Bug pattern="SE_NO_SERIALVERSIONID"/>
-    <!--Class is Serializable, but doesn't define serialVersionUID-->
   </Match>
   <Match>
     <Class name="org.apache.beam.sdk.transforms.display.DisplayData"/>
@@ -404,11 +280,6 @@
   </Match>
   <Match>
     <Class name="org.apache.beam.sdk.util.BitSetCoder"/>
-    <Bug pattern="SE_NO_SERIALVERSIONID"/>
-    <!--Class is Serializable, but doesn't define serialVersionUID-->
-  </Match>
-  <Match>
-    <Class name="org.apache.beam.sdk.util.BitSetCoder"/>
     <Field name="byteArrayCoder"/>
     <Bug pattern="SE_TRANSIENT_FIELD_NOT_RESTORED"/>
     <!--Transient field that isn't set by deserialization. -->
@@ -448,11 +319,6 @@
     <Field name="defaultValue"/>
     <Bug pattern="IS2_INCONSISTENT_SYNC"/>
     <!--Inconsistent synchronization-->
-  </Match>
-  <Match>
-    <Class name="org.apache.beam.sdk.util.PCollectionViews$SingletonPCollectionView"/>
-    <Bug pattern="SE_NO_SERIALVERSIONID"/>
-    <!--Class is Serializable, but doesn't define serialVersionUID-->
   </Match>
   <Match>
     <Class name="org.apache.beam.sdk.util.PaneInfoTracker$1"/>
