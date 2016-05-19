@@ -229,7 +229,9 @@ public final class ZipFiles {
    *     readable.
    */
   @SuppressFBWarnings(value = "NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE",
-      justification = "Validated input is directory via sourceDirectory.isDirectory()")
+      justification = "File.listFiles() will return null if the File instance is not a directory. "
+          + "Null dereference is not a possibility here since we validate sourceDirectory is "
+          + "directory via sourceDirectory.isDirectory()")
   public static void zipDirectory(
       File sourceDirectory,
       OutputStream outputStream) throws IOException {
@@ -263,7 +265,9 @@ public final class ZipFiles {
    *     writeable.
    */
   @SuppressFBWarnings(value = "NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE",
-      justification = "Validated input is directory via inputFile.isDirectory()")
+      justification = "File.listFiles() will return null if the File instance is not a directory. "
+          + "Null dereference is not a possibility here since we validate inputFile is directory "
+          + "via inputFile.isDirectory()")
   private static void zipDirectoryInternal(
       File inputFile,
       String directoryName,
