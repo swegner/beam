@@ -37,7 +37,6 @@ import com.google.api.services.bigquery.model.TableSchema;
 import com.google.cloud.hadoop.util.ApiErrorExtractor;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
-import com.google.common.base.Throwables;
 import com.google.common.util.concurrent.MoreExecutors;
 
 import org.slf4j.Logger;
@@ -208,8 +207,8 @@ public class BigQueryTableInserter {
         rows.add(out);
 
         dataSize += row.toString().length();
-        if (dataSize >= UPLOAD_BATCH_SIZE_BYTES || rows.size() >= maxRowsPerBatch ||
-            i == rowsToPublish.size() - 1) {
+        if (dataSize >= UPLOAD_BATCH_SIZE_BYTES || rows.size() >= maxRowsPerBatch
+            || i == rowsToPublish.size() - 1) {
           TableDataInsertAllRequest content = new TableDataInsertAllRequest();
           content.setRows(rows);
 
@@ -275,7 +274,7 @@ public class BigQueryTableInserter {
         Thread.currentThread().interrupt();
         throw new IOException("Interrupted while inserting " + rowsToPublish);
       } catch (ExecutionException e) {
-        Throwables.propagate(e.getCause());
+        throw new RuntimeException(e.getCause());
       }
 
       if (!allErrors.isEmpty() && !backoff.atMaxAttempts()) {
@@ -329,8 +328,8 @@ public class BigQueryTableInserter {
       table = get.execute();
     } catch (IOException e) {
       ApiErrorExtractor errorExtractor = new ApiErrorExtractor();
-      if (!errorExtractor.itemNotFound(e) ||
-          createDisposition != CreateDisposition.CREATE_IF_NEEDED) {
+      if (!errorExtractor.itemNotFound(e)
+          || createDisposition != CreateDisposition.CREATE_IF_NEEDED) {
         // Rethrow.
         throw e;
       }

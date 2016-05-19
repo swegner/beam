@@ -59,7 +59,7 @@ import java.util.TimeZone;
  * like this:
  * <pre>{@code
  *   --project=YOUR_PROJECT_ID
- *   --stagingLocation=gs://YOUR_STAGING_DIRECTORY
+ *   --tempLocation=gs://YOUR_TEMP_DIRECTORY
  *   --runner=BlockingDataflowPipelineRunner
  *   --dataset=YOUR-DATASET
  * }
@@ -132,8 +132,10 @@ public class HourlyTeamScore extends UserScore {
             c -> c.element().getValue()));
     tableConfig.put("window_start",
         new WriteWindowedToBigQuery.FieldInfo<KV<String, Integer>>("STRING",
-          c -> { IntervalWindow w = (IntervalWindow) c.window();
-                 return fmt.print(w.start()); }));
+          c -> {
+            IntervalWindow w = (IntervalWindow) c.window();
+            return fmt.print(w.start());
+          }));
     return tableConfig;
   }
 

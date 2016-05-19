@@ -696,8 +696,9 @@ public class AvroCoder<T> extends StandardCoder<T> {
      * see private fields. We may need to walk up to the parent to get classes from the parent.
      */
     private static Field getField(Class<?> clazz, String name) {
-      while (clazz != null) {
-        for (Field field : clazz.getDeclaredFields()) {
+      Class<?> currentClass = clazz;
+      while (currentClass != null) {
+        for (Field field : currentClass.getDeclaredFields()) {
           AvroName avroName = field.getAnnotation(AvroName.class);
           if (avroName != null && name.equals(avroName.value())) {
             return field;
@@ -705,7 +706,7 @@ public class AvroCoder<T> extends StandardCoder<T> {
             return field;
           }
         }
-        clazz = clazz.getSuperclass();
+        currentClass = currentClass.getSuperclass();
       }
 
       throw new IllegalArgumentException(

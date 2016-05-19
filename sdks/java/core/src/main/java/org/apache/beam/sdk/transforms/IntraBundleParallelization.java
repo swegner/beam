@@ -176,9 +176,12 @@ public class IntraBundleParallelization {
 
     @Override
     public void populateDisplayData(DisplayData.Builder builder) {
+      super.populateDisplayData(builder);
       builder
-          .add("maxParallelism", maxParallelism)
-          .add("fn", doFn.getClass())
+          .add(DisplayData.item("maxParallelism", maxParallelism)
+            .withLabel("Maximum Parallelism"))
+          .add(DisplayData.item("fn", doFn.getClass())
+            .withLabel("Function"))
           .include(doFn);
     }
   }
@@ -220,7 +223,7 @@ public class IntraBundleParallelization {
       }
 
       if (failure.get() != null) {
-        throw Throwables.propagate(failure.get());
+        throw new RuntimeException(failure.get());
       }
 
       executor.submit(new Runnable() {
@@ -245,7 +248,7 @@ public class IntraBundleParallelization {
       // processElement calls have finished.
       workTickets.acquire(maxParallelism);
       if (failure.get() != null) {
-        throw Throwables.propagate(failure.get());
+        throw new RuntimeException(failure.get());
       }
       doFn.finishBundle(c);
     }

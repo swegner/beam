@@ -25,7 +25,6 @@ import org.apache.beam.sdk.io.PubsubIO;
 import org.apache.beam.sdk.options.Default;
 import org.apache.beam.sdk.options.Description;
 import org.apache.beam.sdk.options.PipelineOptionsFactory;
-import org.apache.beam.sdk.runners.DataflowPipelineRunner;
 import org.apache.beam.sdk.transforms.Aggregator;
 import org.apache.beam.sdk.transforms.Combine;
 import org.apache.beam.sdk.transforms.DoFn;
@@ -83,7 +82,7 @@ import java.util.TimeZone;
  * like this:
  * <pre>{@code
  *   --project=YOUR_PROJECT_ID
- *   --stagingLocation=gs://YOUR_STAGING_DIRECTORY
+ *   --tempLocation=gs://YOUR_TEMP_DIRECTORY
  *   --runner=BlockingDataflowPipelineRunner
  *   --dataset=YOUR-DATASET
  *   --topic=projects/YOUR-PROJECT/topics/YOUR-TOPIC
@@ -207,8 +206,10 @@ public class GameStats extends LeaderBoard {
             c -> c.element().getValue()));
     tableConfigure.put("window_start",
         new WriteWindowedToBigQuery.FieldInfo<KV<String, Integer>>("STRING",
-          c -> { IntervalWindow w = (IntervalWindow) c.window();
-                 return fmt.print(w.start()); }));
+          c -> {
+            IntervalWindow w = (IntervalWindow) c.window();
+            return fmt.print(w.start());
+          }));
     tableConfigure.put("processing_time",
         new WriteWindowedToBigQuery.FieldInfo<KV<String, Integer>>(
             "STRING", c -> fmt.print(Instant.now())));
@@ -226,8 +227,10 @@ public class GameStats extends LeaderBoard {
         new HashMap<String, WriteWindowedToBigQuery.FieldInfo<Double>>();
     tableConfigure.put("window_start",
         new WriteWindowedToBigQuery.FieldInfo<Double>("STRING",
-          c -> { IntervalWindow w = (IntervalWindow) c.window();
-                 return fmt.print(w.start()); }));
+          c -> {
+            IntervalWindow w = (IntervalWindow) c.window();
+            return fmt.print(w.start());
+          }));
     tableConfigure.put("mean_duration",
         new WriteWindowedToBigQuery.FieldInfo<Double>("FLOAT", c -> c.element()));
     return tableConfigure;
@@ -240,8 +243,6 @@ public class GameStats extends LeaderBoard {
     Options options = PipelineOptionsFactory.fromArgs(args).withValidation().as(Options.class);
     // Enforce that this pipeline is always run in streaming mode.
     options.setStreaming(true);
-    // Allow the pipeline to be cancelled automatically.
-    options.setRunner(DataflowPipelineRunner.class);
     DataflowExampleUtils dataflowUtils = new DataflowExampleUtils(options);
     Pipeline pipeline = Pipeline.create(options);
 

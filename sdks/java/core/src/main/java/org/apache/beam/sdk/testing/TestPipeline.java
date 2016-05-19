@@ -31,7 +31,11 @@ import com.google.common.base.Optional;
 import com.google.common.base.Strings;
 import com.google.common.collect.Iterators;
 
+import com.fasterxml.jackson.core.JsonParser;
+import com.fasterxml.jackson.core.TreeNode;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import org.junit.experimental.categories.Category;
 
@@ -39,7 +43,7 @@ import java.io.IOException;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Iterator;
-import java.util.Map;
+import java.util.Map.Entry;
 
 import javax.annotation.Nullable;
 
@@ -56,7 +60,7 @@ import javax.annotation.Nullable;
  *   <li>System property "beamTestPipelineOptions" must contain a JSON delimited list of pipeline
  *   options. For example:
  *   <pre>{@code [
- *     "--runner=org.apache.beam.sdk.testing.TestDataflowPipelineRunner",
+ *     "--runner=org.apache.beam.runners.dataflow.testing.TestDataflowPipelineRunner",
  *     "--project=mygcpproject",
  *     "--stagingLocation=gs://mygcsbucket/path"
  *     ]}</pre>
@@ -157,16 +161,24 @@ public class TestPipeline extends Pipeline {
 
   public static String[] convertToArgs(PipelineOptions options) {
     try {
-      Map<String, Object> stringOpts = (Map<String, Object>) MAPPER.readValue(
-          MAPPER.writeValueAsBytes(options), Map.class).get("options");
+      byte[] opts = MAPPER.writeValueAsBytes(options);
 
+      JsonParser jsonParser = MAPPER.getFactory().createParser(opts);
+      TreeNode node = jsonParser.readValueAsTree();
+      ObjectNode optsNode = (ObjectNode) node.get("options");
       ArrayList<String> optArrayList = new ArrayList<>();
-      for (Map.Entry<String, Object> entry : stringOpts.entrySet()) {
-        optArrayList.add("--" + entry.getKey() + "=" + entry.getValue());
+      Iterator<Entry<String, JsonNode>> entries = optsNode.fields();
+      while (entries.hasNext()) {
+        Entry<String, JsonNode> entry = entries.next();
+        if (entry.getValue().isTextual()) {
+          optArrayList.add("--" + entry.getKey() + "=" + entry.getValue().asText());
+        } else {
+          optArrayList.add("--" + entry.getKey() + "=" + entry.getValue());
+        }
       }
       return optArrayList.toArray(new String[optArrayList.size()]);
-    } catch (Exception e) {
-      return null;
+    } catch (IOException e) {
+      throw new IllegalStateException(e);
     }
   }
 

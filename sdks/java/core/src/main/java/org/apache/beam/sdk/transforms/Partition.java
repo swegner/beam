@@ -124,6 +124,7 @@ public class Partition<T> extends PTransform<PCollection<T>, PCollectionList<T>>
 
   @Override
   public void populateDisplayData(DisplayData.Builder builder) {
+    super.populateDisplayData(builder);
     builder.include(partitionDoFn);
   }
 
@@ -172,16 +173,19 @@ public class Partition<T> extends PTransform<PCollection<T>, PCollectionList<T>>
         c.sideOutput(typedTag, input);
       } else {
         throw new IndexOutOfBoundsException(
-            "Partition function returned out of bounds index: " +
-            partition + " not in [0.." + numPartitions + ")");
+            "Partition function returned out of bounds index: "
+            + partition + " not in [0.." + numPartitions + ")");
       }
     }
 
     @Override
     public void populateDisplayData(DisplayData.Builder builder) {
+      super.populateDisplayData(builder);
       builder
-          .add("numPartitions", numPartitions)
-          .add("partitionFn", partitionFn.getClass());
+          .add(DisplayData.item("numPartitions", numPartitions)
+            .withLabel("Partition Count"))
+          .add(DisplayData.item("partitionFn", partitionFn.getClass())
+            .withLabel("Partition Function"));
     }
   }
 }

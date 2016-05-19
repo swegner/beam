@@ -28,7 +28,7 @@ import org.apache.beam.sdk.coders.CoderException;
 import org.apache.beam.sdk.coders.IterableCoder;
 import org.apache.beam.sdk.coders.KvCoder;
 import org.apache.beam.sdk.coders.MapCoder;
-import org.apache.beam.sdk.coders.VoidCoder;
+import org.apache.beam.sdk.coders.VarIntCoder;
 import org.apache.beam.sdk.options.StreamingOptions;
 import org.apache.beam.sdk.runners.PipelineRunner;
 import org.apache.beam.sdk.transforms.Aggregator;
@@ -98,8 +98,8 @@ public class PAssert {
 
   private static final Logger LOG = LoggerFactory.getLogger(PAssert.class);
 
-  static final String SUCCESS_COUNTER = "PAssertSuccess";
-  static final String FAILURE_COUNTER = "PAssertFailure";
+  public static final String SUCCESS_COUNTER = "PAssertSuccess";
+  public static final String FAILURE_COUNTER = "PAssertFailure";
 
   private static int assertCount = 0;
 
@@ -576,7 +576,7 @@ public class PAssert {
    * <p>This is generally useful for assertion functions that
    * are serializable but whose underlying data may not have a coder.
    */
-  static class OneSideInputAssert<ActualT>
+  public static class OneSideInputAssert<ActualT>
       extends PTransform<PBegin, PDone> implements Serializable {
     private final transient PTransform<PBegin, PCollectionView<ActualT>> createActual;
     private final SerializableFunction<ActualT, Void> checkerFn;
@@ -593,7 +593,7 @@ public class PAssert {
       final PCollectionView<ActualT> actual = input.apply("CreateActual", createActual);
 
       input
-          .apply(Create.<Void>of((Void) null).withCoder(VoidCoder.of()))
+          .apply(Create.of(0).withCoder(VarIntCoder.of()))
           .apply(ParDo.named("RunChecks").withSideInputs(actual)
               .of(new CheckerDoFn<>(checkerFn, actual)));
 
@@ -604,8 +604,11 @@ public class PAssert {
   /**
    * A {@link DoFn} that runs a checking {@link SerializableFunction} on the contents of
    * a {@link PCollectionView}, and adjusts counters and thrown exceptions for use in testing.
+   *
+   * <p>The input is ignored, but is {@link Integer} to be usable on runners that do not support
+   * null values.
    */
-  private static class CheckerDoFn<ActualT> extends DoFn<Void, Void> {
+  private static class CheckerDoFn<ActualT> extends DoFn<Integer, Void> {
     private final SerializableFunction<ActualT, Void> checkerFn;
     private final Aggregator<Integer, Integer> success =
         createAggregator(SUCCESS_COUNTER, new Sum.SumIntegerFn());
@@ -647,7 +650,7 @@ public class PAssert {
    * are not serializable, but have coders (provided
    * by the underlying {@link PCollection}s).
    */
-  static class TwoSideInputAssert<ActualT, ExpectedT>
+  public static class TwoSideInputAssert<ActualT, ExpectedT>
       extends PTransform<PBegin, PDone> implements Serializable {
 
     private final transient PTransform<PBegin, PCollectionView<ActualT>> createActual;
@@ -669,14 +672,17 @@ public class PAssert {
       final PCollectionView<ExpectedT> expected = input.apply("CreateExpected", createExpected);
 
       input
-          .apply(Create.<Void>of((Void) null).withCoder(VoidCoder.of()))
-          .apply(ParDo.named("RunChecks").withSideInputs(actual, expected)
+          .apply(Create.of(0).withCoder(VarIntCoder.of()))
+          .apply("RunChecks", ParDo.withSideInputs(actual, expected)
               .of(new CheckerDoFn<>(relation, actual, expected)));
 
       return PDone.in(input.getPipeline());
     }
 
-    private static class CheckerDoFn<ActualT, ExpectedT> extends DoFn<Void, Void> {
+    /**
+     * Input is ignored, but is {@link Integer} for runners that do not support null values.
+     */
+    private static class CheckerDoFn<ActualT, ExpectedT> extends DoFn<Integer, Void> {
       private final Aggregator<Integer, Integer> success =
           createAggregator(SUCCESS_COUNTER, new Sum.SumIntegerFn());
       private final Aggregator<Integer, Integer> failure =

@@ -28,7 +28,6 @@ import org.apache.beam.sdk.options.Default;
 import org.apache.beam.sdk.options.Description;
 import org.apache.beam.sdk.options.PipelineOptionsFactory;
 import org.apache.beam.sdk.options.Validation;
-import org.apache.beam.sdk.runners.DataflowPipelineRunner;
 import org.apache.beam.sdk.transforms.ParDo;
 import org.apache.beam.sdk.transforms.windowing.AfterProcessingTime;
 import org.apache.beam.sdk.transforms.windowing.AfterWatermark;
@@ -80,7 +79,7 @@ import java.util.TimeZone;
  * like this:
  * <pre>{@code
  *   --project=YOUR_PROJECT_ID
- *   --stagingLocation=gs://YOUR_STAGING_DIRECTORY
+ *   --tempLocation=gs://YOUR_TEMP_DIRECTORY
  *   --runner=BlockingDataflowPipelineRunner
  *   --dataset=YOUR-DATASET
  *   --topic=projects/YOUR-PROJECT/topics/YOUR-TOPIC
@@ -143,8 +142,10 @@ public class LeaderBoard extends HourlyTeamScore {
             c -> c.element().getValue()));
     tableConfigure.put("window_start",
         new WriteWindowedToBigQuery.FieldInfo<KV<String, Integer>>("STRING",
-          c -> { IntervalWindow w = (IntervalWindow) c.window();
-                 return fmt.print(w.start()); }));
+          c -> {
+            IntervalWindow w = (IntervalWindow) c.window();
+            return fmt.print(w.start());
+          }));
     tableConfigure.put("processing_time",
         new WriteWindowedToBigQuery.FieldInfo<KV<String, Integer>>(
             "STRING", c -> fmt.print(Instant.now())));
@@ -175,9 +176,6 @@ public class LeaderBoard extends HourlyTeamScore {
     Options options = PipelineOptionsFactory.fromArgs(args).withValidation().as(Options.class);
     // Enforce that this pipeline is always run in streaming mode.
     options.setStreaming(true);
-    // For example purposes, allow the pipeline to be easily cancelled instead of running
-    // continuously.
-    options.setRunner(DataflowPipelineRunner.class);
     DataflowExampleUtils dataflowUtils = new DataflowExampleUtils(options);
     Pipeline pipeline = Pipeline.create(options);
 

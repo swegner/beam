@@ -22,7 +22,7 @@ import static org.apache.beam.sdk.transforms.display.DisplayDataMatchers.hasKey;
 import static org.apache.beam.sdk.transforms.display.DisplayDataMatchers.hasNamespace;
 import static org.apache.beam.sdk.transforms.display.DisplayDataMatchers.hasType;
 import static org.apache.beam.sdk.transforms.display.DisplayDataMatchers.hasValue;
-import static org.apache.beam.sdk.transforms.display.DisplayDataMatchers.includes;
+import static org.apache.beam.sdk.transforms.display.DisplayDataMatchers.includesDisplayDataFrom;
 
 import static org.hamcrest.Matchers.allOf;
 import static org.hamcrest.Matchers.empty;
@@ -39,7 +39,14 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 
+import org.apache.beam.sdk.Pipeline;
+import org.apache.beam.sdk.testing.PAssert;
+import org.apache.beam.sdk.testing.RunnableOnService;
+import org.apache.beam.sdk.testing.TestPipeline;
+import org.apache.beam.sdk.transforms.Create;
+import org.apache.beam.sdk.transforms.DoFn;
 import org.apache.beam.sdk.transforms.PTransform;
+import org.apache.beam.sdk.transforms.ParDo;
 import org.apache.beam.sdk.transforms.display.DisplayData.Builder;
 import org.apache.beam.sdk.transforms.display.DisplayData.Item;
 import org.apache.beam.sdk.values.PCollection;
@@ -62,11 +69,13 @@ import org.joda.time.format.DateTimeFormatter;
 import org.joda.time.format.ISODateTimeFormat;
 import org.junit.Rule;
 import org.junit.Test;
+import org.junit.experimental.categories.Category;
 import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
 import java.io.IOException;
+import java.io.Serializable;
 import java.util.Collection;
 import java.util.Map;
 import java.util.regex.Pattern;
@@ -75,8 +84,8 @@ import java.util.regex.Pattern;
  * Tests for {@link DisplayData} class.
  */
 @RunWith(JUnit4.class)
-public class DisplayDataTest {
-  @Rule public ExpectedException thrown = ExpectedException.none();
+public class DisplayDataTest implements Serializable {
+  @Rule public transient ExpectedException thrown = ExpectedException.none();
   private static final DateTimeFormatter ISO_FORMATTER = ISODateTimeFormat.dateTime();
   private static final ObjectMapper MAPPER = new ObjectMapper();
 
@@ -86,7 +95,7 @@ public class DisplayDataTest {
         new HasDisplayData() {
           @Override
           public void populateDisplayData(DisplayData.Builder builder) {
-            builder.add("ExpectedAnswer", 42);
+            builder.add(DisplayData.item("ExpectedAnswer", 42));
           }
         };
 
@@ -94,7 +103,9 @@ public class DisplayDataTest {
         new HasDisplayData() {
           @Override
           public void populateDisplayData(DisplayData.Builder builder) {
-            builder.add("Location", "Seattle").add("Forecast", "Rain");
+            builder
+                .add(DisplayData.item("Location", "Seattle"))
+                .add(DisplayData.item("Forecast", "Rain"));
           }
         };
 
@@ -109,14 +120,14 @@ public class DisplayDataTest {
             builder
                 .include(subComponent1)
                 .include(subComponent2)
-                .add("minSproggles", 200)
-                  .withLabel("Mimimum Required Sproggles")
-                .add("fireLazers", true)
-                .addIfNotDefault("startTime", startTime, defaultStartTime)
-                .add("timeBomb", Instant.now().plus(Duration.standardDays(1)))
-                .add("filterLogic", subComponent1.getClass())
-                .add("serviceUrl", "google.com/fizzbang")
-                  .withLinkUrl("http://www.google.com/fizzbang");
+                .add(DisplayData.item("minSproggles", 200)
+                  .withLabel("Minimum Required Sproggles"))
+                .add(DisplayData.item("fireLasers", true))
+                .addIfNotDefault(DisplayData.item("startTime", startTime), defaultStartTime)
+                .add(DisplayData.item("timeBomb", Instant.now().plus(Duration.standardDays(1))))
+                .add(DisplayData.item("filterLogic", subComponent1.getClass()))
+                .add(DisplayData.item("serviceUrl", "google.com/fizzbang")
+                  .withLinkUrl("http://www.google.com/fizzbang"));
           }
         };
 
@@ -142,12 +153,12 @@ public class DisplayDataTest {
   }
 
   @Test
-  public void testCanBuild() {
+  public void testCanBuildDisplayData() {
     DisplayData data =
         DisplayData.from(new HasDisplayData() {
               @Override
               public void populateDisplayData(DisplayData.Builder builder) {
-                builder.add("foo", "bar");
+                builder.add(DisplayData.item("foo", "bar"));
               }
             });
 
@@ -162,11 +173,11 @@ public class DisplayDataTest {
             new HasDisplayData() {
               @Override
               public void populateDisplayData(DisplayData.Builder builder) {
-                builder.add("foo", "bar");
+                builder.add(DisplayData.item("foo", "bar"));
               }
             });
 
-    Map<DisplayData.Identifier, DisplayData.Item> map = data.asMap();
+    Map<DisplayData.Identifier, DisplayData.Item<?>> map = data.asMap();
     assertEquals(map.size(), 1);
     assertThat(data, hasDisplayItem("foo", "bar"));
     assertEquals(map.values(), data.items());
@@ -178,25 +189,27 @@ public class DisplayDataTest {
     DisplayData data = DisplayData.from(new HasDisplayData() {
       @Override
       public void populateDisplayData(DisplayData.Builder builder) {
-        builder.add("now", value)
+        builder.add(DisplayData.item("now", value)
             .withLabel("the current instant")
             .withLinkUrl("http://time.gov")
-            .withNamespace(DisplayDataTest.class);
+            .withNamespace(DisplayDataTest.class));
       }
     });
 
     @SuppressWarnings("unchecked")
-    DisplayData.Item item = (DisplayData.Item) data.items().toArray()[0];
-    assertThat(
-        item,
-        Matchers.allOf(
-            hasNamespace(DisplayDataTest.class),
-            hasKey("now"),
-            hasType(DisplayData.Type.TIMESTAMP),
-            hasValue(ISO_FORMATTER.print(value)),
-            hasShortValue(nullValue(String.class)),
-            hasLabel(is("the current instant")),
-            hasUrl(is("http://time.gov"))));
+    DisplayData.Item<?> item = (DisplayData.Item<?>) data.items().toArray()[0];
+
+    @SuppressWarnings("unchecked")
+    Matcher<Item<?>> matchesAllOf = Matchers.allOf(
+        hasNamespace(DisplayDataTest.class),
+        hasKey("now"),
+        hasType(DisplayData.Type.TIMESTAMP),
+        hasValue(ISO_FORMATTER.print(value)),
+        hasShortValue(nullValue(String.class)),
+        hasLabel(is("the current instant")),
+        hasUrl(is("http://time.gov")));
+
+    assertThat(item, matchesAllOf);
   }
 
   @Test
@@ -206,7 +219,7 @@ public class DisplayDataTest {
             new HasDisplayData() {
               @Override
               public void populateDisplayData(DisplayData.Builder builder) {
-                builder.add("foo", "bar");
+                builder.add(DisplayData.item("foo", "bar"));
               }
             });
 
@@ -221,20 +234,26 @@ public class DisplayDataTest {
       @Override
       public void populateDisplayData(Builder builder) {
         builder
-            .addIfNotDefault("defaultString", "foo", "foo")
-            .addIfNotDefault("notDefaultString", "foo", "notFoo")
-            .addIfNotDefault("defaultInteger", 1, 1)
-            .addIfNotDefault("notDefaultInteger", 1, 2)
-            .addIfNotDefault("defaultDouble", 123.4, 123.4)
-            .addIfNotDefault("notDefaultDouble", 123.4, 234.5)
-            .addIfNotDefault("defaultBoolean", true, true)
-            .addIfNotDefault("notDefaultBoolean", true, false)
-            .addIfNotDefault("defaultInstant", new Instant(0), new Instant(0))
-            .addIfNotDefault("notDefaultInstant", new Instant(0), Instant.now())
-            .addIfNotDefault("defaultDuration", Duration.ZERO, Duration.ZERO)
-            .addIfNotDefault("notDefaultDuration", Duration.millis(1234), Duration.ZERO)
-            .addIfNotDefault("defaultClass", DisplayDataTest.class, DisplayDataTest.class)
-            .addIfNotDefault("notDefaultClass", DisplayDataTest.class, null);
+            .addIfNotDefault(DisplayData.item("defaultString", "foo"), "foo")
+            .addIfNotDefault(DisplayData.item("notDefaultString", "foo"), "notFoo")
+            .addIfNotDefault(DisplayData.item("defaultInteger", 1), 1)
+            .addIfNotDefault(DisplayData.item("notDefaultInteger", 1), 2)
+            .addIfNotDefault(DisplayData.item("defaultDouble", 123.4), 123.4)
+            .addIfNotDefault(DisplayData.item("notDefaultDouble", 123.4), 234.5)
+            .addIfNotDefault(DisplayData.item("defaultBoolean", true), true)
+            .addIfNotDefault(DisplayData.item("notDefaultBoolean", true), false)
+            .addIfNotDefault(DisplayData.item("defaultInstant", new Instant(0)), new Instant(0))
+            .addIfNotDefault(DisplayData.item("notDefaultInstant", new Instant(0)), Instant.now())
+            .addIfNotDefault(DisplayData.item("defaultDuration", Duration.ZERO), Duration.ZERO)
+            .addIfNotDefault(
+                DisplayData.item("notDefaultDuration", Duration.millis(1234)),
+                Duration.ZERO)
+            .addIfNotDefault(
+                DisplayData.item("defaultClass", DisplayDataTest.class),
+                DisplayDataTest.class)
+            .addIfNotDefault(
+                DisplayData.item("notDefaultClass", DisplayDataTest.class),
+                null);
       }
     });
 
@@ -243,25 +262,52 @@ public class DisplayDataTest {
   }
 
   @Test
+  @SuppressWarnings("UnnecessaryBoxing")
+  public void testInterpolatedTypeDefaults() {
+    DisplayData data = DisplayData.from(new HasDisplayData() {
+      @Override
+      public void populateDisplayData(Builder builder) {
+        builder
+            .addIfNotDefault(DisplayData.item("integer", 123), 123)
+            .addIfNotDefault(DisplayData.item("Integer",
+                Integer.valueOf(123)),
+                Integer.valueOf(123))
+            .addIfNotDefault(DisplayData.item("long", 123L), 123L)
+            .addIfNotDefault(DisplayData.item("Long", Long.valueOf(123)), Long.valueOf(123))
+            .addIfNotDefault(DisplayData.item("float", 1.23f), 1.23f)
+            .addIfNotDefault(DisplayData.item("Float", Float.valueOf(1.23f)), Float.valueOf(1.23f))
+            .addIfNotDefault(DisplayData.item("double", 1.23), 1.23)
+            .addIfNotDefault(DisplayData.item("Double", Double.valueOf(1.23)), Double.valueOf(1.23))
+            .addIfNotDefault(DisplayData.item("boolean", true), true)
+            .addIfNotDefault(
+                DisplayData.item("Boolean", Boolean.valueOf(true)),
+                Boolean.valueOf(true));
+      }
+    });
+
+    assertThat(data.items(), empty());
+  }
+
+  @Test
   public void testAddIfNotNull() {
     DisplayData data = DisplayData.from(new HasDisplayData() {
       @Override
       public void populateDisplayData(Builder builder) {
         builder
-            .addIfNotNull("nullString", (String) null)
-            .addIfNotNull("notNullString", "foo")
-            .addIfNotNull("nullLong", (Long) null)
-            .addIfNotNull("notNullLong", 1234L)
-            .addIfNotNull("nullDouble", (Double) null)
-            .addIfNotNull("notNullDouble", 123.4)
-            .addIfNotNull("nullBoolean", (Boolean) null)
-            .addIfNotNull("notNullBoolean", true)
-            .addIfNotNull("nullInstant", (Instant) null)
-            .addIfNotNull("notNullInstant", Instant.now())
-            .addIfNotNull("nullDuration", (Duration) null)
-            .addIfNotNull("notNullDuration", Duration.ZERO)
-            .addIfNotNull("nullClass", (Class<?>) null)
-            .addIfNotNull("notNullClass", DisplayDataTest.class);
+            .addIfNotNull(DisplayData.item("nullString", (String) null))
+            .addIfNotNull(DisplayData.item("notNullString", "foo"))
+            .addIfNotNull(DisplayData.item("nullLong", (Long) null))
+            .addIfNotNull(DisplayData.item("notNullLong", 1234L))
+            .addIfNotNull(DisplayData.item("nullDouble", (Double) null))
+            .addIfNotNull(DisplayData.item("notNullDouble", 123.4))
+            .addIfNotNull(DisplayData.item("nullBoolean", (Boolean) null))
+            .addIfNotNull(DisplayData.item("notNullBoolean", true))
+            .addIfNotNull(DisplayData.item("nullInstant", (Instant) null))
+            .addIfNotNull(DisplayData.item("notNullInstant", Instant.now()))
+            .addIfNotNull(DisplayData.item("nullDuration", (Duration) null))
+            .addIfNotNull(DisplayData.item("notNullDuration", Duration.ZERO))
+            .addIfNotNull(DisplayData.item("nullClass", (Class<?>) null))
+            .addIfNotNull(DisplayData.item("notNullClass", DisplayDataTest.class));
       }
     });
 
@@ -274,10 +320,10 @@ public class DisplayDataTest {
     HasDisplayData component = new HasDisplayData() {
       @Override
       public void populateDisplayData(Builder builder) {
-        builder.addIfNotNull("nullItem", (Class<?>) null)
+        builder.addIfNotNull(DisplayData.item("nullItem", (Class<?>) null)
             .withLinkUrl("http://abc")
             .withNamespace(DisplayDataTest.class)
-            .withLabel("Null item shoudl be safe");
+            .withLabel("Null item should be safe"));
       }
     };
 
@@ -291,7 +337,7 @@ public class DisplayDataTest {
         new HasDisplayData() {
           @Override
           public void populateDisplayData(DisplayData.Builder builder) {
-            builder.add("foo", "bar");
+            builder.add(DisplayData.item("foo", "bar"));
           }
         };
 
@@ -304,7 +350,7 @@ public class DisplayDataTest {
               }
             });
 
-    assertThat(data, includes(subComponent));
+    assertThat(data, includesDisplayDataFrom(subComponent));
   }
 
   @Test
@@ -312,7 +358,7 @@ public class DisplayDataTest {
     final HasDisplayData subComponent = new HasDisplayData() {
         @Override
         public void populateDisplayData(DisplayData.Builder builder) {
-          builder.add("foo", "bar");
+          builder.add(DisplayData.item("foo", "bar"));
         }
     };
 
@@ -329,7 +375,40 @@ public class DisplayDataTest {
       }
     });
 
-    assertThat(data, includes(subComponent, namespaceOverride.getClass()));
+    assertThat(data, includesDisplayDataFrom(subComponent, namespaceOverride.getClass()));
+  }
+
+  @Test
+  public void testNamespaceOverrideMultipleLevels() {
+    final HasDisplayData componentA = new HasDisplayData() {
+      @Override
+      public void populateDisplayData(Builder builder) {
+        builder.add(DisplayData.item("foo", "bar"));
+      }
+    };
+
+    final HasDisplayData componentB = new HasDisplayData() {
+      @Override
+      public void populateDisplayData(Builder builder) {
+        builder
+            .add(DisplayData.item("foo", "bar"))
+            .include(componentA);
+      }
+    };
+
+    final HasDisplayData componentC = new HasDisplayData() {
+      @Override
+      public void populateDisplayData(Builder builder) {
+        builder
+            .add(DisplayData.item("foo", "bar"))
+            .include(componentB, "overrideB");
+      }
+    };
+
+    DisplayData data = DisplayData.from(componentC);
+    assertThat(data, hasDisplayItem(hasNamespace(componentC.getClass())));
+    assertThat(data, hasDisplayItem(hasNamespace("overrideB")));
+    assertThat(data, hasDisplayItem(hasNamespace(componentA.getClass())));
   }
 
   @Test
@@ -339,8 +418,8 @@ public class DisplayDataTest {
     DisplayData.from(new HasDisplayData() {
       @Override
       public void populateDisplayData(Builder builder) {
-        builder.add("foo", "bar")
-            .withNamespace((Class<?>) null);
+        builder.add(DisplayData.item("foo", "bar")
+            .withNamespace((Class<?>) null));
       }
     });
   }
@@ -349,37 +428,18 @@ public class DisplayDataTest {
   public void testIdentifierEquality() {
     new EqualsTester()
         .addEqualityGroup(
-            DisplayData.Identifier.of(ClassForDisplay.of(DisplayDataTest.class), "1"),
-            DisplayData.Identifier.of(ClassForDisplay.of(DisplayDataTest.class), "1"))
-        .addEqualityGroup(DisplayData.Identifier.of(ClassForDisplay.of(Object.class), "1"))
-        .addEqualityGroup(DisplayData.Identifier.of(ClassForDisplay.of(DisplayDataTest.class), "2"))
+            DisplayData.Identifier.of(DisplayDataTest.class, "1"),
+            DisplayData.Identifier.of(DisplayDataTest.class, "1"))
+        .addEqualityGroup(DisplayData.Identifier.of(Object.class, "1"))
+        .addEqualityGroup(DisplayData.Identifier.of(DisplayDataTest.class, "2"))
         .testEquals();
   }
 
   @Test
   public void testItemEquality() {
-    HasDisplayData component1 = new HasDisplayData() {
-      @Override
-      public void populateDisplayData(Builder builder) {
-        builder.add("foo", "bar");
-      }
-    };
-    HasDisplayData component2 = new HasDisplayData() {
-      @Override
-      public void populateDisplayData(Builder builder) {
-        builder.add("foo", "bar");
-      }
-    };
-
-    DisplayData component1DisplayData1 = DisplayData.from(component1);
-    DisplayData component1DisplayData2 = DisplayData.from(component1);
-    DisplayData component2DisplayData = DisplayData.from(component2);
-
     new EqualsTester()
-        .addEqualityGroup(
-            component1DisplayData1.items().toArray()[0],
-            component1DisplayData2.items().toArray()[0])
-        .addEqualityGroup(component2DisplayData.items().toArray()[0])
+        .addEqualityGroup(DisplayData.item("foo", "bar"), DisplayData.item("foo", "bar"))
+        .addEqualityGroup(DisplayData.item("foo", "barz"))
         .testEquals();
   }
 
@@ -388,13 +448,13 @@ public class DisplayDataTest {
     HasDisplayData component1 = new HasDisplayData() {
       @Override
       public void populateDisplayData(Builder builder) {
-        builder.add("foo", "bar");
+        builder.add(DisplayData.item("foo", "bar"));
       }
     };
     HasDisplayData component2 = new HasDisplayData() {
       @Override
       public void populateDisplayData(Builder builder) {
-        builder.add("foo", "bar");
+        builder.add(DisplayData.item("foo", "bar"));
       }
     };
 
@@ -415,11 +475,11 @@ public class DisplayDataTest {
             new HasDisplayData() {
               @Override
               public void populateDisplayData(DisplayData.Builder builder) {
-                builder.add("foo", "bar");
+                builder.add(DisplayData.item("foo", "bar"));
               }
             });
 
-    DisplayData.Item item = (DisplayData.Item) data.items().toArray()[0];
+    DisplayData.Item<?> item = (DisplayData.Item<?>) data.items().toArray()[0];
     final Pattern anonClassRegex = Pattern.compile(
         Pattern.quote(DisplayDataTest.class.getName()) + "\\$\\d+$");
     assertThat(item.getNamespace(), new CustomTypeSafeMatcher<String>(
@@ -440,12 +500,12 @@ public class DisplayDataTest {
               @Override
               public void populateDisplayData(DisplayData.Builder builder) {
                 builder
-                    .add("foo", "bar")
+                    .add(DisplayData.item("foo", "bar"))
                     .include(
                         new HasDisplayData() {
                           @Override
                           public void populateDisplayData(DisplayData.Builder builder) {
-                            builder.add("foo", "bar");
+                            builder.add(DisplayData.item("foo", "bar"));
                           }
                         });
               }
@@ -462,8 +522,8 @@ public class DisplayDataTest {
           @Override
           public void populateDisplayData(DisplayData.Builder builder) {
             builder
-              .add("foo", "bar")
-              .add("foo", "baz");
+              .add(DisplayData.item("foo", "bar"))
+              .add(DisplayData.item("foo", "baz"));
           }
         });
   }
@@ -475,9 +535,9 @@ public class DisplayDataTest {
           @Override
           public void populateDisplayData(DisplayData.Builder builder) {
             builder
-                .add("foo", "bar")
-                .add("foo", "baz")
-                  .withNamespace(DisplayDataTest.class);
+                .add(DisplayData.item("foo", "bar"))
+                .add(DisplayData.item("foo", "baz")
+                  .withNamespace(DisplayDataTest.class));
           }
         });
 
@@ -489,7 +549,7 @@ public class DisplayDataTest {
     HasDisplayData component = new HasDisplayData() {
       @Override
       public void populateDisplayData(DisplayData.Builder builder) {
-        builder.add("foo", "bar");
+        builder.add(DisplayData.item("foo", "bar"));
       }
     };
 
@@ -554,7 +614,7 @@ public class DisplayDataTest {
 
     @Override
     public void populateDisplayData(DisplayData.Builder builder) {
-      builder.add(key, value);
+      builder.add(DisplayData.item(key, value));
     }
 
     @Override
@@ -574,7 +634,9 @@ public class DisplayDataTest {
 
     @Override
     public void populateDisplayData(DisplayData.Builder builder) {
-      builder.add("id", getId()).include(subComponent);
+      builder
+          .add(DisplayData.item("id", getId()))
+          .include(subComponent);
     }
 
     abstract String getId();
@@ -588,18 +650,17 @@ public class DisplayDataTest {
               @Override
               public void populateDisplayData(DisplayData.Builder builder) {
                 builder
-                    .add("string", "foobar")
-                    .add("integer", 123)
-                    .add("float", 3.14)
-                    .add("boolean", true)
-                    .add("java_class", DisplayDataTest.class)
-                    .add("java_class2", ClassForDisplay.of(DisplayDataTest.class))
-                    .add("timestamp", Instant.now())
-                    .add("duration", Duration.standardHours(1));
+                    .add(DisplayData.item("string", "foobar"))
+                    .add(DisplayData.item("integer", 123))
+                    .add(DisplayData.item("float", 3.14))
+                    .add(DisplayData.item("boolean", true))
+                    .add(DisplayData.item("java_class", DisplayDataTest.class))
+                    .add(DisplayData.item("timestamp", Instant.now()))
+                    .add(DisplayData.item("duration", Duration.standardHours(1)));
               }
             });
 
-    Collection<Item> items = data.items();
+    Collection<Item<?>> items = data.items();
     assertThat(
         items, hasItem(allOf(hasKey("string"), hasType(DisplayData.Type.STRING))));
     assertThat(
@@ -609,9 +670,6 @@ public class DisplayDataTest {
     assertThat(
         items,
         hasItem(allOf(hasKey("java_class"), hasType(DisplayData.Type.JAVA_CLASS))));
-    assertThat(
-        items,
-        hasItem(allOf(hasKey("java_class2"), hasType(DisplayData.Type.JAVA_CLASS))));
     assertThat(
         items,
         hasItem(allOf(hasKey("timestamp"), hasType(DisplayData.Type.TIMESTAMP))));
@@ -625,8 +683,8 @@ public class DisplayDataTest {
       @Override
       public void populateDisplayData(Builder builder) {
         builder
-            .add("integer", DisplayData.Type.INTEGER, 1234L)
-            .add("string", DisplayData.Type.STRING, "foobar");
+            .add(DisplayData.item("integer", DisplayData.Type.INTEGER, 1234L))
+            .add(DisplayData.item("string", DisplayData.Type.STRING, "foobar"));
       }
     });
 
@@ -690,7 +748,7 @@ public class DisplayDataTest {
     HasDisplayData component = new HasDisplayData() {
       @Override
       public void populateDisplayData(Builder builder) {
-        builder.add("integer", DisplayData.Type.INTEGER, "foobar");
+        builder.add(DisplayData.item("integer", DisplayData.Type.INTEGER, "foobar"));
       }
     };
 
@@ -707,8 +765,6 @@ public class DisplayDataTest {
     assertEquals(DisplayData.Type.BOOLEAN, DisplayData.inferType(true));
     assertEquals(DisplayData.Type.TIMESTAMP, DisplayData.inferType(Instant.now()));
     assertEquals(DisplayData.Type.DURATION, DisplayData.inferType(Duration.millis(1234)));
-    assertEquals(DisplayData.Type.JAVA_CLASS,
-        DisplayData.inferType(ClassForDisplay.of(DisplayDataTest.class)));
     assertEquals(DisplayData.Type.JAVA_CLASS, DisplayData.inferType(DisplayDataTest.class));
     assertEquals(DisplayData.Type.STRING, DisplayData.inferType("hello world"));
 
@@ -725,13 +781,13 @@ public class DisplayDataTest {
       @Override
       public void populateDisplayData(DisplayData.Builder builder) {
         builder
-          .add("string", "foobar")
-          .add("integer", 123)
-          .add("float", 3.14)
-          .add("boolean", true)
-          .add("java_class", DisplayDataTest.class)
-          .add("timestamp", now)
-          .add("duration", oneHour);
+          .add(DisplayData.item("string", "foobar"))
+          .add(DisplayData.item("integer", 123))
+          .add(DisplayData.item("float", 3.14))
+          .add(DisplayData.item("boolean", true))
+          .add(DisplayData.item("java_class", DisplayDataTest.class))
+          .add(DisplayData.item("timestamp", now))
+          .add(DisplayData.item("duration", oneHour));
       }
     };
     DisplayData data = DisplayData.from(component);
@@ -751,7 +807,7 @@ public class DisplayDataTest {
         new HasDisplayData() {
           @Override
           public void populateDisplayData(DisplayData.Builder builder) {
-            builder.add("foo", "bar");
+            builder.add(DisplayData.item("foo", "bar"));
           }
         };
 
@@ -761,7 +817,7 @@ public class DisplayDataTest {
           public void populateDisplayData(DisplayData.Builder builder) {
             builder
               .include(subComponent)
-              .add("alpha", "bravo");
+              .add(DisplayData.item("alpha", "bravo"));
           }
         };
 
@@ -804,7 +860,7 @@ public class DisplayDataTest {
     DisplayData.from(new HasDisplayData() {
         @Override
         public void populateDisplayData(Builder builder) {
-          builder.include(subComponent, (ClassForDisplay) null);
+          builder.include(subComponent, (Class<?>) null);
         }
       });
   }
@@ -816,7 +872,7 @@ public class DisplayDataTest {
         new HasDisplayData() {
           @Override
           public void populateDisplayData(Builder builder) {
-            builder.add(null, "foo");
+            builder.add(DisplayData.item(null, "foo"));
           }
         });
   }
@@ -828,28 +884,28 @@ public class DisplayDataTest {
         @Override
         public void populateDisplayData(Builder builder) {
           try {
-            builder.add("key", (String) null);
+            builder.add(DisplayData.item("key", (String) null));
             throw new RuntimeException("Should throw on null string value");
           } catch (NullPointerException ex) {
             // Expected
           }
 
           try {
-            builder.add("key", (Class<?>) null);
+            builder.add(DisplayData.item("key", (Class<?>) null));
             throw new RuntimeException("Should throw on null class value");
           } catch (NullPointerException ex) {
             // Expected
           }
 
           try {
-            builder.add("key", (Duration) null);
+            builder.add(DisplayData.item("key", (Duration) null));
             throw new RuntimeException("Should throw on null duration value");
           } catch (NullPointerException ex) {
             // Expected
           }
 
           try {
-            builder.add("key", (Instant) null);
+            builder.add(DisplayData.item("key", (Instant) null));
             throw new RuntimeException("Should throw on null instant value");
           } catch (NullPointerException ex) {
             // Expected
@@ -864,9 +920,9 @@ public class DisplayDataTest {
       new HasDisplayData() {
         @Override
         public void populateDisplayData(Builder builder) {
-          builder.add("key", "value")
+          builder.add(DisplayData.item("key", "value")
               .withLabel(null)
-              .withLinkUrl(null);
+              .withLinkUrl(null));
         }
       });
 
@@ -885,16 +941,15 @@ public class DisplayDataTest {
       @Override
       public void populateDisplayData(Builder builder) {
         builder
-            .add("string", stringValue)
-            .add("long", intValue)
-            .add("double", floatValue)
-            .add("boolean", boolValue)
-            .add("instant", new Instant(0))
-            .add("duration", Duration.millis(durationMillis))
-            .add("class", DisplayDataTest.class)
+            .add(DisplayData.item("string", stringValue))
+            .add(DisplayData.item("long", intValue))
+            .add(DisplayData.item("double", floatValue))
+            .add(DisplayData.item("boolean", boolValue))
+            .add(DisplayData.item("instant", new Instant(0)))
+            .add(DisplayData.item("duration", Duration.millis(durationMillis)))
+            .add(DisplayData.item("class", DisplayDataTest.class)
               .withLinkUrl("http://abc")
-              .withLabel("baz")
-        ;
+              .withLabel("baz"));
       }
     };
     DisplayData data = DisplayData.from(component);
@@ -910,6 +965,38 @@ public class DisplayDataTest {
     assertThat(json, hasExpectedJson(
         component, "JAVA_CLASS", "class", quoted(DisplayDataTest.class.getName()),
         quoted("DisplayDataTest"), "baz", "http://abc"));
+  }
+
+  /**
+   * Validate that all runners are resilient to exceptions thrown while retrieving display data.
+   */
+  @Test
+  @Category(RunnableOnService.class)
+  public void testRunnersResilientToDisplayDataExceptions() {
+    Pipeline p = TestPipeline.create();
+    PCollection<Integer> pCol = p
+        .apply(Create.of(1, 2, 3))
+        .apply(new IdentityTransform<Integer>() {
+          @Override
+          public void populateDisplayData(Builder builder) {
+            throw new RuntimeException("bug!");
+          }
+        });
+
+    PAssert.that(pCol).containsInAnyOrder(1, 2, 3);
+    p.run();
+  }
+
+  private static class IdentityTransform<T> extends PTransform<PCollection<T>, PCollection<T>> {
+    @Override
+    public PCollection<T> apply(PCollection<T> input) {
+      return input.apply(ParDo.of(new DoFn<T, T>() {
+        @Override
+        public void processElement(ProcessContext c) throws Exception {
+          c.output(c.element());
+        }
+      }));
+    }
   }
 
   private String quoted(Object obj) {
@@ -955,31 +1042,31 @@ public class DisplayDataTest {
     return hasItem(jsonNode);
   }
 
-  private static Matcher<DisplayData.Item> hasLabel(Matcher<String> labelMatcher) {
-    return new FeatureMatcher<DisplayData.Item, String>(
+  private static Matcher<DisplayData.Item<?>> hasLabel(Matcher<String> labelMatcher) {
+    return new FeatureMatcher<DisplayData.Item<?>, String>(
         labelMatcher, "display item with label", "label") {
       @Override
-      protected String featureValueOf(DisplayData.Item actual) {
+      protected String featureValueOf(DisplayData.Item<?> actual) {
         return actual.getLabel();
       }
     };
   }
 
-  private static Matcher<DisplayData.Item> hasUrl(Matcher<String> urlMatcher) {
-    return new FeatureMatcher<DisplayData.Item, String>(
+  private static Matcher<DisplayData.Item<?>> hasUrl(Matcher<String> urlMatcher) {
+    return new FeatureMatcher<DisplayData.Item<?>, String>(
         urlMatcher, "display item with url", "URL") {
       @Override
-      protected String featureValueOf(DisplayData.Item actual) {
+      protected String featureValueOf(DisplayData.Item<?> actual) {
         return actual.getLinkUrl();
       }
     };
   }
 
-  private static  <T> Matcher<DisplayData.Item> hasShortValue(Matcher<T> valueStringMatcher) {
-    return new FeatureMatcher<DisplayData.Item, T>(
+  private static  <T> Matcher<DisplayData.Item<?>> hasShortValue(Matcher<T> valueStringMatcher) {
+    return new FeatureMatcher<DisplayData.Item<?>, T>(
         valueStringMatcher, "display item with short value", "short value") {
       @Override
-      protected T featureValueOf(DisplayData.Item actual) {
+      protected T featureValueOf(DisplayData.Item<?> actual) {
         @SuppressWarnings("unchecked")
         T shortValue = (T) actual.getShortValue();
         return shortValue;

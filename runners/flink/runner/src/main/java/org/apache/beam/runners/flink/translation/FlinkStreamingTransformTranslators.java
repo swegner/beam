@@ -20,19 +20,24 @@ package org.apache.beam.runners.flink.translation;
 
 import org.apache.beam.runners.flink.translation.functions.UnionCoder;
 import org.apache.beam.runners.flink.translation.types.CoderTypeInformation;
+import org.apache.beam.runners.flink.translation.types.FlinkCoder;
 import org.apache.beam.runners.flink.translation.wrappers.SourceInputFormat;
 import org.apache.beam.runners.flink.translation.wrappers.streaming.FlinkGroupAlsoByWindowWrapper;
 import org.apache.beam.runners.flink.translation.wrappers.streaming.FlinkGroupByKeyWrapper;
 import org.apache.beam.runners.flink.translation.wrappers.streaming.FlinkParDoBoundMultiWrapper;
 import org.apache.beam.runners.flink.translation.wrappers.streaming.FlinkParDoBoundWrapper;
 import org.apache.beam.runners.flink.translation.wrappers.streaming.io.FlinkStreamingCreateFunction;
+import org.apache.beam.runners.flink.translation.wrappers.streaming.io.UnboundedFlinkSink;
 import org.apache.beam.runners.flink.translation.wrappers.streaming.io.UnboundedFlinkSource;
 import org.apache.beam.runners.flink.translation.wrappers.streaming.io.UnboundedSourceWrapper;
 import org.apache.beam.sdk.coders.Coder;
 import org.apache.beam.sdk.coders.KvCoder;
 import org.apache.beam.sdk.io.BoundedSource;
 import org.apache.beam.sdk.io.Read;
+import org.apache.beam.sdk.io.Sink;
 import org.apache.beam.sdk.io.TextIO;
+import org.apache.beam.sdk.io.UnboundedSource;
+import org.apache.beam.sdk.io.Write;
 import org.apache.beam.sdk.transforms.Combine;
 import org.apache.beam.sdk.transforms.Create;
 import org.apache.beam.sdk.transforms.DoFn;
@@ -64,12 +69,8 @@ import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.datastream.DataStreamSink;
 import org.apache.flink.streaming.api.datastream.KeyedStream;
 import org.apache.flink.streaming.api.datastream.SingleOutputStreamOperator;
-import org.apache.flink.streaming.api.functions.AssignerWithPunctuatedWatermarks;
 import org.apache.flink.streaming.api.functions.IngestionTimeExtractor;
-import org.apache.flink.streaming.api.functions.TimestampAssigner;
-import org.apache.flink.streaming.api.watermark.Watermark;
 import org.apache.flink.util.Collector;
-import org.apache.kafka.common.utils.Time;
 import org.joda.time.Instant;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -104,6 +105,9 @@ public class FlinkStreamingTransformTranslators {
     TRANSLATORS.put(Read.Unbounded.class, new UnboundedReadSourceTranslator());
     TRANSLATORS.put(ParDo.Bound.class, new ParDoBoundStreamingTranslator());
     TRANSLATORS.put(TextIO.Write.Bound.class, new TextIOWriteBoundStreamingTranslator());
+
+    TRANSLATORS.put(Write.Bound.class, new WriteSinkStreamingTranslator());
+
     TRANSLATORS.put(Window.Bound.class, new WindowBoundTranslator());
     TRANSLATORS.put(GroupByKey.class, new GroupByKeyTranslator());
     TRANSLATORS.put(Combine.PerKey.class, new CombinePerKeyTranslator());
@@ -193,6 +197,29 @@ public class FlinkStreamingTransformTranslators {
     }
   }
 
+  private static class WriteSinkStreamingTranslator<T> implements FlinkStreamingPipelineTranslator.StreamTransformTranslator<Write.Bound<T>> {
+
+    @Override
+    public void translateNode(Write.Bound<T> transform, FlinkStreamingTranslationContext context) {
+      String name = transform.getName();
+      PValue input = context.getInput(transform);
+
+      Sink<T> sink = transform.getSink();
+      if (!(sink instanceof UnboundedFlinkSink)) {
+        throw new UnsupportedOperationException("At the time, only unbounded Flink sinks are supported.");
+      }
+
+      DataStream<WindowedValue<T>> inputDataSet = context.getInputDataStream(input);
+
+      inputDataSet.flatMap(new FlatMapFunction<WindowedValue<T>, Object>() {
+        @Override
+        public void flatMap(WindowedValue<T> value, Collector<Object> out) throws Exception {
+          out.collect(value.getValue());
+        }
+      }).addSink(((UnboundedFlinkSink<Object>) sink).getFlinkSource()).name(name);
+    }
+  }
+
   private static class BoundedReadSourceTranslator<T>
       implements FlinkStreamingPipelineTranslator.StreamTransformTranslator<Read.Bounded<T>> {
 
@@ -237,9 +264,15 @@ public class FlinkStreamingTransformTranslators {
       DataStream<WindowedValue<T>> source;
       if (transform.getSource().getClass().equals(UnboundedFlinkSource.class)) {
         @SuppressWarnings("unchecked")
-        UnboundedFlinkSource<T> flinkSource = (UnboundedFlinkSource<T>) transform.getSource();
-        source = context.getExecutionEnvironment()
-            .addSource(flinkSource.getFlinkSource())
+        UnboundedFlinkSource<T> flinkSourceFunction = (UnboundedFlinkSource<T>) transform.getSource();
+        DataStream<T> flinkSource = context.getExecutionEnvironment()
+            .addSource(flinkSourceFunction.getFlinkSource());
+
+        flinkSourceFunction.setCoder(
+            new FlinkCoder<T>(flinkSource.getType(),
+              context.getExecutionEnvironment().getConfig()));
+
+        source = flinkSource
             .flatMap(new FlatMapFunction<T, WindowedValue<T>>() {
               @Override
               public void flatMap(T s, Collector<WindowedValue<T>> collector) throws Exception {
@@ -252,8 +285,17 @@ public class FlinkStreamingTransformTranslators {
               }
             }).assignTimestampsAndWatermarks(new IngestionTimeExtractor<WindowedValue<T>>());
       } else {
-        source = context.getExecutionEnvironment()
-            .addSource(new UnboundedSourceWrapper<>(context.getPipelineOptions(), transform));
+        try {
+          transform.getSource();
+          UnboundedSourceWrapper<T, ?> sourceWrapper =
+              new UnboundedSourceWrapper<>(
+                  context.getPipelineOptions(),
+                  transform.getSource(),
+                  context.getExecutionEnvironment().getParallelism());
+          source = context.getExecutionEnvironment().addSource(sourceWrapper).name(transform.getName());
+        } catch (Exception e) {
+          throw new RuntimeException("Error while translating UnboundedSource: " + transform.getSource(), e);
+        }
       }
 
       context.setOutputDataStream(output, source);
@@ -278,7 +320,9 @@ public class FlinkStreamingTransformTranslators {
       FlinkParDoBoundWrapper<IN, OUT> doFnWrapper = new FlinkParDoBoundWrapper<>(
           context.getPipelineOptions(), windowingStrategy, transform.getFn());
       DataStream<WindowedValue<IN>> inputDataStream = context.getInputDataStream(context.getInput(transform));
-      SingleOutputStreamOperator<WindowedValue<OUT>> outDataStream = inputDataStream.flatMap(doFnWrapper)
+      SingleOutputStreamOperator<WindowedValue<OUT>> outDataStream = inputDataStream
+          .flatMap(doFnWrapper)
+          .name(transform.getName())
           .returns(outputWindowedValueCoder);
 
       context.setOutputDataStream(context.getOutput(transform), outDataStream);

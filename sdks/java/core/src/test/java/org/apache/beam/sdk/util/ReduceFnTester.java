@@ -36,6 +36,7 @@ import org.apache.beam.sdk.transforms.CombineWithContext.KeyedCombineFnWithConte
 import org.apache.beam.sdk.transforms.Sum;
 import org.apache.beam.sdk.transforms.windowing.BoundedWindow;
 import org.apache.beam.sdk.transforms.windowing.GlobalWindow;
+import org.apache.beam.sdk.transforms.windowing.OutputTimeFns;
 import org.apache.beam.sdk.transforms.windowing.PaneInfo;
 import org.apache.beam.sdk.transforms.windowing.Trigger;
 import org.apache.beam.sdk.transforms.windowing.TriggerBuilder;
@@ -58,7 +59,6 @@ import org.apache.beam.sdk.values.TupleTag;
 import com.google.common.base.Function;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
-import com.google.common.base.Throwables;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -135,6 +135,7 @@ public class ReduceFnTester<InputT, OutputT, W extends BoundedWindow> {
           Duration allowedDataLateness, ClosingBehavior closingBehavior) throws Exception {
     WindowingStrategy<?, W> strategy =
         WindowingStrategy.of(windowFn)
+            .withOutputTimeFn(OutputTimeFns.outputAtEarliestInputTimestamp())
             .withTrigger(trigger.buildTrigger())
             .withMode(mode)
             .withAllowedLateness(allowedDataLateness)
@@ -186,8 +187,11 @@ public class ReduceFnTester<InputT, OutputT, W extends BoundedWindow> {
           Duration allowedDataLateness) throws Exception {
 
     WindowingStrategy<?, W> strategy =
-        WindowingStrategy.of(windowFn).withTrigger(trigger).withMode(mode).withAllowedLateness(
-            allowedDataLateness);
+        WindowingStrategy.of(windowFn)
+            .withOutputTimeFn(OutputTimeFns.outputAtEarliestInputTimestamp())
+            .withTrigger(trigger)
+            .withMode(mode)
+            .withAllowedLateness(allowedDataLateness);
 
     return combining(strategy, combineFn, outputCoder);
   }
@@ -408,7 +412,7 @@ public class ReduceFnTester<InputT, OutputT, W extends BoundedWindow> {
                   windowFn, value, timestamp, Arrays.asList(GlobalWindow.INSTANCE)));
               return WindowedValue.of(value, timestamp, windows, PaneInfo.NO_FIRING);
             } catch (Exception e) {
-              throw Throwables.propagate(e);
+              throw new RuntimeException(e);
             }
           }
         }));

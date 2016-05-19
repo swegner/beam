@@ -157,7 +157,9 @@ public class Sample {
 
     @Override
     public void populateDisplayData(DisplayData.Builder builder) {
-      builder.add("sampleSize", limit);
+      super.populateDisplayData(builder);
+      builder.add(DisplayData.item("sampleSize", limit)
+        .withLabel("Sample Size"));
     }
   }
 
@@ -256,7 +258,9 @@ public class Sample {
 
     @Override
     public void populateDisplayData(DisplayData.Builder builder) {
-      builder.add("sampleSize", sampleSize);
+      super.populateDisplayData(builder);
+      builder.add(DisplayData.item("sampleSize", sampleSize)
+        .withLabel("Sample Size"));
     }
   }
 }

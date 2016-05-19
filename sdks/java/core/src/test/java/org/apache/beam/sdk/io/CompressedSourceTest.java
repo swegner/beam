@@ -18,8 +18,8 @@
 package org.apache.beam.sdk.io;
 
 import static org.apache.beam.sdk.transforms.display.DisplayDataMatchers.hasDisplayItem;
-import static org.apache.beam.sdk.transforms.display.DisplayDataMatchers.hasKey;
-import static org.apache.beam.sdk.transforms.display.DisplayDataMatchers.includes;
+import static org.apache.beam.sdk.transforms.display.DisplayDataMatchers.includesDisplayDataFrom;
+
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.junit.Assert.assertFalse;
@@ -342,7 +342,7 @@ public class CompressedSourceTest {
     ByteSource inputSource = new ByteSource("foobar.txt", 1) {
       @Override
       public void populateDisplayData(DisplayData.Builder builder) {
-        builder.add("foo", "bar");
+        builder.add(DisplayData.item("foo", "bar"));
       }
     };
 
@@ -352,10 +352,10 @@ public class CompressedSourceTest {
     DisplayData compressedSourceDisplayData = DisplayData.from(compressedSource);
     DisplayData gzipDisplayData = DisplayData.from(gzipSource);
 
-    assertThat(compressedSourceDisplayData, hasDisplayItem(hasKey("compressionMode")));
+    assertThat(compressedSourceDisplayData, hasDisplayItem("compressionMode"));
     assertThat(gzipDisplayData, hasDisplayItem("compressionMode", CompressionMode.GZIP.toString()));
     assertThat(compressedSourceDisplayData, hasDisplayItem("source", inputSource.getClass()));
-    assertThat(compressedSourceDisplayData, includes(inputSource));
+    assertThat(compressedSourceDisplayData, includesDisplayDataFrom(inputSource));
   }
 
   /**

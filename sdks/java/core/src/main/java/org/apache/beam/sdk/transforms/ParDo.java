@@ -808,12 +808,13 @@ public class ParDo {
     /**
      * {@inheritDoc}
      *
-     * <p>{@link ParDo} registers its internal {@link DoFn} as a subcomponent for display metadata.
+     * <p>{@link ParDo} registers its internal {@link DoFn} as a subcomponent for display data.
      * {@link DoFn} implementations can register display data by overriding
      * {@link DoFn#populateDisplayData}.
      */
     @Override
     public void populateDisplayData(Builder builder) {
+      super.populateDisplayData(builder);
       ParDo.populateDisplayData(builder, fn, fnClass);
     }
 
@@ -1051,6 +1052,7 @@ public class ParDo {
 
     @Override
     public void populateDisplayData(Builder builder) {
+      super.populateDisplayData(builder);
       ParDo.populateDisplayData(builder, fn, fnClass);
     }
 
@@ -1263,8 +1265,9 @@ public class ParDo {
   private static void populateDisplayData(
       DisplayData.Builder builder, DoFn<?, ?> fn, Class<?> fnClass) {
     builder
-        .include(fn, fnClass)
-        .add("fn", fnClass);
+        .include(fn)
+        .add(DisplayData.item("fn", fnClass)
+          .withLabel("Transform Function"));
   }
 
   /**

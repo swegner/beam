@@ -87,11 +87,10 @@
       <artifactId>flink-avro_2.10</artifactId>
       <version>${flink.version}</version>
     </dependency>
-    <!--- Beam -->
+    <!-- Beam -->
     <dependency>
       <groupId>org.apache.beam</groupId>
       <artifactId>java-sdk-all</artifactId>
-      <version>${beam.version}</version>
       <exclusions>
         <exclusion>
           <groupId>org.slf4j</groupId>
@@ -102,8 +101,7 @@
 
     <dependency>
       <groupId>org.apache.beam</groupId>
-      <artifactId>google-cloud-dataflow-java-runner</artifactId>
-      <version>${project.version}</version>
+      <artifactId>runners-core</artifactId>
       <exclusions>
         <exclusion>
           <groupId>org.slf4j</groupId>
@@ -111,11 +109,11 @@
         </exclusion>
       </exclusions>
     </dependency>
+
     <!-- Test scoped -->
     <dependency>
       <groupId>org.apache.beam</groupId>
       <artifactId>java-examples-all</artifactId>
-      <version>${beam.version}</version>
       <exclusions>
         <exclusion>
           <groupId>org.slf4j</groupId>
@@ -140,20 +138,25 @@
     <dependency>
       <groupId>org.mockito</groupId>
       <artifactId>mockito-all</artifactId>
-      <version>1.9.5</version>
       <scope>test</scope>
     </dependency>
     <!-- Optional Pipeline Registration -->
     <dependency>
       <groupId>com.google.auto.service</groupId>
       <artifactId>auto-service</artifactId>
-      <version>1.0-rc2</version>
       <optional>true</optional>
     </dependency>
   </dependencies>
 
   <build>
     <plugins>
+
+      <!-- Checkstyle errors for now
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-checkstyle-plugin</artifactId>
+      </plugin>
+      -->
 
       <!-- Integration Tests -->
       <plugin>
