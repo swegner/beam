@@ -20,6 +20,8 @@ package org.apache.beam.sdk.transforms.display;
 import org.apache.beam.sdk.options.PipelineOptions;
 import org.apache.beam.sdk.transforms.PTransform;
 
+import javax.annotation.Nullable;
+
 /**
  * Marker interface for {@link PTransform PTransforms} and components to specify display data used
  * within UIs and diagnostic tools.
@@ -52,17 +54,7 @@ import org.apache.beam.sdk.transforms.PTransform;
  */
 public interface HasDisplayData {
   /**
-   * Register display data for the given transform or component.
-   *
-   * <p>{@code populateDisplayData(DisplayData.Builder)} is invoked by Pipeline runners to collect
-   * display data via {@link DisplayData#from(HasDisplayData)}. Implementations may call
-   * {@code super.populateDisplayData(builder)} in order to register display data in the current
-   * namespace, but should otherwise use {@code subcomponent.populateDisplayData(builder)} to use
-   * the namespace of the subcomponent.
-   *
-   * @param builder The builder to populate with display data.
-   *
-   * @see HasDisplayData
+   * Retrieve a reader for component display data.
    */
-  void populateDisplayData(DisplayData.Builder builder);
+  DisplayData.Reader getDisplayData();
 }
