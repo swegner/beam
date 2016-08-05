@@ -60,6 +60,9 @@ public interface HasDisplayData {
    * namespace, but should otherwise use {@code subcomponent.populateDisplayData(builder)} to use
    * the namespace of the subcomponent.
    *
+   * <p>In addition to collecting display data at graph-construction time, a runner may also poll
+   * this API for updates during pipeline execution.
+   *
    * @param builder The builder to populate with display data.
    *
    * @see HasDisplayData

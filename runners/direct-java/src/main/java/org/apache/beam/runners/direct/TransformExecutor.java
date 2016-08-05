@@ -143,6 +143,7 @@ class TransformExecutor<T> implements Runnable {
         }
 
         evaluator.processElement(value);
+        evaluator.pollDisplayData();
 
         for (ModelEnforcement<T> enforcement : enforcements) {
           enforcement.afterElement(value);
@@ -162,6 +163,8 @@ class TransformExecutor<T> implements Runnable {
       TransformEvaluator<T> evaluator, Collection<ModelEnforcement<T>> enforcements)
       throws Exception {
     TransformResult result = evaluator.finishBundle();
+    evaluator.pollDisplayData();
+
     CommittedResult outputs = onComplete.handleResult(inputBundle, result);
     for (ModelEnforcement<T> enforcement : enforcements) {
       enforcement.afterFinish(inputBundle, result, outputs.getOutputs());
