@@ -53,3 +53,6 @@ install:
 script:
   - travis_retry mvn -B $MAVEN_OVERRIDE install -U
   - travis_retry testing/travis/test_wordcount.sh
+
+after_success:
+  - travis_retry mvn -B jacoco:report coveralls:report
