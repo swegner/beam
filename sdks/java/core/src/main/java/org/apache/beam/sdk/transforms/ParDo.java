@@ -661,6 +661,7 @@ public class ParDo {
     private final List<PCollectionView<?>> sideInputs;
     private final DoFn<InputT, OutputT> fn;
     private final Class<?> fnClass;
+    private final DisplayData.Token displayData;
 
     Bound(String name,
           List<PCollectionView<?>> sideInputs,
@@ -670,6 +671,11 @@ public class ParDo {
       this.sideInputs = sideInputs;
       this.fn = SerializableUtils.clone(fn);
       this.fnClass = fnClass;
+
+      displayData = DisplayData.init(ParDo.class)
+          .include(fn.getDisplayData())
+          .add(DisplayData.item("fn", fnClass)
+              .withLabel("Transform Function"));
     }
 
     /**
@@ -754,6 +760,11 @@ public class ParDo {
     public void populateDisplayData(Builder builder) {
       super.populateDisplayData(builder);
       ParDo.populateDisplayData(builder, fn, fnClass);
+    }
+
+    @Override
+    public DisplayData.Reader getDisplayData() {
+      return displayData;
     }
 
     public DoFn<InputT, OutputT> getFn() {
@@ -964,12 +975,6 @@ public class ParDo {
       }
     }
 
-    @Override
-    public void populateDisplayData(Builder builder) {
-      super.populateDisplayData(builder);
-      ParDo.populateDisplayData(builder, fn, fnClass);
-    }
-
     public DoFn<InputT, OutputT> getFn() {
       return fn;
     }
@@ -985,13 +990,5 @@ public class ParDo {
     public List<PCollectionView<?>> getSideInputs() {
       return sideInputs;
     }
-  }
-
-  private static void populateDisplayData(
-      DisplayData.Builder builder, DoFn<?, ?> fn, Class<?> fnClass) {
-    builder
-        .include(fn)
-        .add(DisplayData.item("fn", fnClass)
-            .withLabel("Transform Function"));
   }
 }

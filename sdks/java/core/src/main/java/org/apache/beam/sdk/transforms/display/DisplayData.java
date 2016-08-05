@@ -39,6 +39,7 @@ import org.joda.time.format.ISODateTimeFormat;
 
 import java.io.Serializable;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
@@ -76,6 +77,68 @@ public class DisplayData implements Serializable {
   public static DisplayData from(HasDisplayData component) {
     checkNotNull(component, "component argument cannot be null");
     return InternalBuilder.forRoot(component).build();
+  }
+
+  public static DisplayData.Token init(Class<?> component) {
+    // TODO: Create a new token tied to the identity of component
+    return null;
+  }
+
+  /** Interface for reading component display data and receiving updates. */
+  public interface Reader {
+    /** Retrieve a snapshot of the current set of display data */
+    void snapshot(DisplayData.Builder builder);
+
+    /** Register a listener to receive newly registered display data items */
+    void registerListener(DisplayData.Listener listener);
+  }
+
+  /** Listener interface to receive callback when new display data is added. */
+  public interface Listener {
+    <T> void added(DisplayData.Item<T> item);
+  }
+
+  /** A token for registering and receiving component display data. */
+  public static final class Token implements DisplayData.Reader {
+    private Set<DisplayData.Listener> listeners = new HashSet<>();
+    private Set<DisplayData.Reader> children = new HashSet<>();
+    private Set<DisplayData.Item> displayData = new HashSet<>();
+
+    /** Register new display data */
+    public synchronized DisplayData.Token add(DisplayData.Item item) {
+      // Add item to collection and notify parent
+      return this;
+    }
+
+    public synchronized DisplayData.Token include(DisplayData.Reader subComponentReader) {
+      children.add(subComponentReader);
+      subComponentReader.registerListener(new DisplayData.Listener() {
+        @Override
+        public <T> void added(Item<T> item) {
+          for (DisplayData.Listener listener : listeners) {
+            added(item);
+          }
+        }
+      });
+
+      return this;
+    }
+
+    @Override
+    public void registerListener(Listener listener) {
+      listeners.add(listener);
+    }
+
+    @Override
+    public void snapshot(DisplayData.Builder builder) {
+      for (DisplayData.Reader childReader : children) {
+        builder.include(childReader);
+      }
+
+      for (DisplayData.Item<?> item : displayData) {
+        builder.add(item);
+      }
+    }
   }
 
   /**
