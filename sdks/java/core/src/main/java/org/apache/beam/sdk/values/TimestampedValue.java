@@ -25,6 +25,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.io.Serializable;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
@@ -43,7 +44,7 @@ import org.joda.time.Instant;
  *
  * @param <V> the type of the value
  */
-public class TimestampedValue<V> {
+public class TimestampedValue<V> implements Serializable {
   /**
    * Returns a new {@link TimestampedValue} with the default timestamp,
    * represented by {@link BoundedWindow#TIMESTAMP_MIN_VALUE}.

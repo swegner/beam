@@ -24,6 +24,7 @@ import com.google.common.testing.EqualsTester;
 
 import org.apache.beam.sdk.transforms.windowing.BoundedWindow;
 
+import org.apache.beam.sdk.util.SerializableUtils;
 import org.joda.time.Instant;
 import org.junit.Rule;
 import org.junit.Test;
@@ -78,5 +79,10 @@ public class TimestampedValueTest {
             TimestampedValue.of("foo", BoundedWindow.TIMESTAMP_MIN_VALUE),
             TimestampedValue.of("foo"))
         .testEquals();
+  }
+
+  @Test
+  public void testSerializable() {
+    SerializableUtils.ensureSerializable(TimestampedValue.of("foobar", Instant.now()));
   }
 }
