@@ -36,7 +36,6 @@ import java.util.Map;
 import java.util.NavigableSet;
 import java.util.Queue;
 import java.util.Set;
-import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.stream.Collectors;
 import org.apache.beam.model.pipeline.v1.RunnerApi.Environment;
@@ -59,6 +58,8 @@ public class GreedyPipelineFuser {
   private final FusedPipeline fusedPipeline;
 
   private GreedyPipelineFuser(Pipeline p) {
+    // Validate that the original pipeline is well-formed.
+    PipelineValidator.validate(p);
     this.pipeline = QueryablePipeline.forPrimitivesIn(p.getComponents());
     Set<PTransformNode> unfusedRootNodes = new LinkedHashSet<>();
     NavigableSet<CollectionConsumer> rootConsumers = new TreeSet<>();
@@ -320,8 +321,9 @@ public class GreedyPipelineFuser {
     }
     // Order sibling sets by their least siblings. This is stable across the order siblings are
     // generated, given stable IDs.
+    @SuppressWarnings("JdkObsolete")
     NavigableSet<NavigableSet<CollectionConsumer>> orderedSiblings =
-        new TreeSet<>(Comparator.comparing(SortedSet::first));
+        new TreeSet<>(Comparator.comparing(NavigableSet::first));
     orderedSiblings.addAll(compatibleConsumers.values());
     return orderedSiblings;
   }

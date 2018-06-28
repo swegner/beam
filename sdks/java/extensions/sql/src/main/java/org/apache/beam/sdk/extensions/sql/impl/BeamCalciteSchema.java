@@ -17,8 +17,10 @@
  */
 package org.apache.beam.sdk.extensions.sql.impl;
 
+import com.google.common.collect.Maps;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Map;
 import java.util.Set;
 import org.apache.beam.sdk.extensions.sql.meta.Table;
 import org.apache.beam.sdk.extensions.sql.meta.provider.TableProvider;
@@ -29,18 +31,22 @@ import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.schema.SchemaVersion;
 import org.apache.calcite.schema.Schemas;
 
-/**
- * Adapter from {@link TableProvider} to {@link Schema}.
- */
+/** Adapter from {@link TableProvider} to {@link Schema}. */
 public class BeamCalciteSchema implements Schema {
-  private TableProvider tableProvider;
+  private final TableProvider tableProvider;
+  private final Map<String, String> pipelineOptions;
 
   public BeamCalciteSchema(TableProvider tableProvider) {
     this.tableProvider = tableProvider;
+    this.pipelineOptions = Maps.newHashMap();
   }
 
   public TableProvider getTableProvider() {
     return tableProvider;
+  }
+
+  public Map<String, String> getPipelineOptions() {
+    return pipelineOptions;
   }
 
   @Override
@@ -69,7 +75,7 @@ public class BeamCalciteSchema implements Schema {
     if (table == null) {
       return null;
     }
-    return new BeamCalciteTable(tableProvider.buildBeamSqlTable(table));
+    return new BeamCalciteTable(tableProvider.buildBeamSqlTable(table), getPipelineOptions());
   }
 
   @Override

@@ -85,6 +85,8 @@ public class PTransformTranslation {
       getUrn(StandardPTransforms.Composites.WRITE_FILES);
   public static final String SPLITTABLE_PROCESS_KEYED_URN =
       getUrn(SplittableParDoComponents.PROCESS_KEYED_ELEMENTS);
+  public static final String SPLITTABLE_PROCESS_ELEMENTS_URN =
+      getUrn(SplittableParDoComponents.PROCESS_ELEMENTS);
 
   private static final Map<Class<? extends PTransform>, TransformPayloadTranslator>
       KNOWN_PAYLOAD_TRANSLATORS = loadTransformPayloadTranslators();
@@ -413,6 +415,7 @@ public class PTransformTranslation {
     }
 
     @Nullable
+    @Override
     public abstract RunnerApi.FunctionSpec getSpec();
 
     public static UnknownRawPTransform forSpec(RunnerApi.FunctionSpec spec) {

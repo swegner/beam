@@ -17,36 +17,36 @@
 package org.apache.beam.sdk.extensions.sql.impl.parser;
 
 import java.util.List;
+import javax.annotation.Nullable;
 import org.apache.calcite.jdbc.CalcitePrepare;
 import org.apache.calcite.jdbc.CalciteSchema;
 import org.apache.calcite.sql.SqlDataTypeSpec;
 import org.apache.calcite.sql.SqlIdentifier;
+import org.apache.calcite.sql.SqlLiteral;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.parser.SqlParserPos;
+import org.apache.calcite.util.NlsString;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
 
-/**
- * Utilities concerning {@link SqlNode} for DDL.
- */
+/** Utilities concerning {@link SqlNode} for DDL. */
 public class SqlDdlNodes {
   private SqlDdlNodes() {}
 
   /** Creates a DROP TABLE. */
-  public static SqlDropTable dropTable(SqlParserPos pos, boolean ifExists,
-      SqlIdentifier name) {
+  public static SqlDropTable dropTable(SqlParserPos pos, boolean ifExists, SqlIdentifier name) {
     return new SqlDropTable(pos, ifExists, name);
   }
 
   /** Creates a column declaration. */
-  public static SqlNode column(SqlParserPos pos, SqlIdentifier name,
-      SqlDataTypeSpec dataType, SqlNode comment) {
+  public static SqlNode column(
+      SqlParserPos pos, SqlIdentifier name, SqlDataTypeSpec dataType, SqlNode comment) {
     return new SqlColumnDeclaration(pos, name, dataType, comment);
   }
 
   /** Returns the schema in which to create an object. */
-  static Pair<CalciteSchema, String> schema(CalcitePrepare.Context context,
-      boolean mutable, SqlIdentifier id) {
+  static Pair<CalciteSchema, String> schema(
+      CalcitePrepare.Context context, boolean mutable, SqlIdentifier id) {
     final String name;
     final List<String> path;
     if (id.isSimple()) {
@@ -56,12 +56,21 @@ public class SqlDdlNodes {
       path = Util.skipLast(id.names);
       name = Util.last(id.names);
     }
-    CalciteSchema schema = mutable ? context.getMutableRootSchema()
-        : context.getRootSchema();
+    CalciteSchema schema = mutable ? context.getMutableRootSchema() : context.getRootSchema();
     for (String p : path) {
       schema = schema.getSubSchema(p, true);
     }
     return Pair.of(schema, name);
+  }
+
+  static @Nullable String getString(SqlNode n) {
+    if (n == null) {
+      return null;
+    }
+    if (n instanceof SqlIdentifier) {
+      return ((SqlIdentifier) n).toString();
+    }
+    return ((NlsString) SqlLiteral.value(n)).getValue();
   }
 }
 

@@ -19,6 +19,7 @@ package org.apache.beam.sdk.extensions.sql.impl;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 import org.apache.beam.sdk.extensions.sql.BeamSqlTable;
 import org.apache.beam.sdk.extensions.sql.impl.rel.BeamIOSinkRel;
 import org.apache.beam.sdk.extensions.sql.impl.rel.BeamIOSourceRel;
@@ -38,16 +39,16 @@ import org.apache.calcite.schema.ModifiableTable;
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.schema.TranslatableTable;
 
-/**
- * Adapter from {@link BeamSqlTable} to a calcite Table.
- */
+/** Adapter from {@link BeamSqlTable} to a calcite Table. */
 class BeamCalciteTable extends AbstractQueryableTable
     implements ModifiableTable, TranslatableTable {
   private final BeamSqlTable beamTable;
+  private final Map<String, String> pipelineOptions;
 
-  public BeamCalciteTable(BeamSqlTable beamTable) {
+  public BeamCalciteTable(BeamSqlTable beamTable, Map<String, String> pipelineOptions) {
     super(Object[].class);
     this.beamTable = beamTable;
+    this.pipelineOptions = pipelineOptions;
   }
 
   @Override
@@ -57,7 +58,7 @@ class BeamCalciteTable extends AbstractQueryableTable
 
   @Override
   public RelNode toRel(RelOptTable.ToRelContext context, RelOptTable relOptTable) {
-    return new BeamIOSourceRel(context.getCluster(), relOptTable, beamTable);
+    return new BeamIOSourceRel(context.getCluster(), relOptTable, beamTable, pipelineOptions);
   }
 
   @Override
