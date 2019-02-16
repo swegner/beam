@@ -63,6 +63,7 @@ dependencies {
   shadow project(path: ":beam-model-pipeline", configuration: "shadow")
   shadow project(path: ":beam-model-job-management", configuration: "shadow")
   shadow library.java.vendored_guava_20_0
+  compile "com.diffplug.gradle.spotless:com.diffplug.gradle.spotless.gradle.plugin:3.17.0"
   compile library.java.antlr_runtime
   compile library.java.protobuf_java
   compile library.java.byte_buddy
